@@ -1,3 +1,9 @@
+"""
+Analyze CAEN root file pedestal for Aramaki Lab
+author: Jiancheng Zeng
+Date: Oct 4, 2024
+"""
+
 import ROOT
 import matplotlib.pyplot as plt
 import numpy as np

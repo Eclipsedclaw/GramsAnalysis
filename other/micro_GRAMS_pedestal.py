@@ -6,6 +6,7 @@ import pandas as pd
 import os
 import pathlib
 import readline
+from statistics import stdev
 
 
 def complete_path(text, state):
@@ -35,6 +36,21 @@ readline.parse_and_bind("tab: complete")
 readline.set_completer(complete_path)
 #print(input('tab complete a filename: '))
 
+def GRAMS_RMS(baseline_array):
+    #print("Calculating RMS")
+    """
+    Calculate the Root Mean Square (RMS) of a given array.
+    
+    Parameters:
+    arr (list or np.array): Input array of numerical values.
+    
+    Returns:
+    float: The RMS value of the array.
+    """
+    baseline_array = np.array(baseline_array)  # Ensure input is a numpy array
+    return np.sqrt(np.mean(baseline_array**2))
+
+
 def GRAMS_Pedestal(file_address, num_channels):
     file = ROOT.TFile(file_address)
 
@@ -51,42 +67,34 @@ def GRAMS_Pedestal(file_address, num_channels):
 
     num_events = int(mytree.GetEntries()/num_channels)
 
+    fluctuation_rms = []
     df = pd.DataFrame()
     print("Reading root file..")
     for i in range(num_channels):
         wfarray = []
+        event_mean = []
         for j in range(num_events):
             mytree.GetEntry(i*num_events + j)
             #wfarray = np.random.random(len(mytree.waveform_samples))
             wfarray.extend(raw_wf)
             #print("wfarray length is: ", len(wfarray))
             column_name = f"ch{mytree.channel}"
+            baseline_mean = np.average(raw_wf)
+            event_mean.append(baseline_mean)
+        fluctuation_rms.append(stdev(event_mean)/np.sqrt(len(event_mean)))
         df[column_name] = wfarray
 
 
     print(df.head())
-    return df
+    return df, fluctuation_rms
 
 
 def baseline_correction(baseline_array):
+    print("Performing baseline correction")
     avg = np.average(baseline_array)
     #print("first ", pretrigger, " samples has an average:", avg, "mV")
     corrected = np.array(baseline_array) - avg
     return corrected
-
-
-def GRAMS_RMS(baseline_array):
-    """
-    Calculate the Root Mean Square (RMS) of a given array.
-    
-    Parameters:
-    arr (list or np.array): Input array of numerical values.
-    
-    Returns:
-    float: The RMS value of the array.
-    """
-    baseline_array = np.array(baseline_array)  # Ensure input is a numpy array
-    return np.sqrt(np.mean(baseline_array**2))
 
 
 # Ask the user to input the file path
@@ -116,22 +124,29 @@ print(f"Number of channels: {num_channels}")
 
 RMS_data = []
 data = GRAMS_Pedestal(file_address=file_path, num_channels=num_channels)
+data_wf = data[0]
+RMS_errors = data[1]
 
 for i in range(num_channels):
-    corrected_data = baseline_correction(data.iloc[:,i])
+    corrected_data = baseline_correction(data_wf.iloc[:,i])
     #plt.plot(corrected_data)
     RMS_data.append(GRAMS_RMS(corrected_data))
-    print("Processing CAEN channel "+ str(data.columns[i])+" ("+str(i+1)+"/"+str(num_channels)+")")
+    print("Processing CAEN channel "+ str(data_wf.columns[i])+" ("+str(i+1)+"/"+str(num_channels)+")")
 
 # Create the bar plot
 plt.figure(figsize=(10, 6))  # Set figure size
-plt.bar(range(len(RMS_data)), RMS_data)  # Generate the bar plot
+
+# Customize error bar appearance using error_kw
+error_kw = {'ecolor': 'red', 'capsize': 5, 'elinewidth': 2, 'alpha': 0.8}
+plt.bar(range(len(RMS_data)), RMS_data,  yerr=RMS_errors, capsize=5, error_kw=error_kw)  # Generate the bar plot
 # Custom labels for x-axis (one for each element, can be any label like strings)
-custom_labels = data.columns  # Get the column names from the DataFrame
+custom_labels = data_wf.columns  # Get the column names from the DataFrame
+
 # Customize x-axis ticks
 plt.xticks(ticks=range(len(RMS_data)), labels=custom_labels, rotation=45, fontsize=10)  # Set custom labels, rotate, and adjust font size
 plt.xlabel('channel number')  # Label for x-axis
 plt.ylabel('RMS/mV')          # Label for y-axis
+
 # Set plot title using the extracted file name
 plt.title(f'RMS performance for all CSP channels - {file_name}', fontsize=14)
 plt.grid(True, linestyle='--')  # Add grid lines to the plot

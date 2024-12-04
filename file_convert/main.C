@@ -74,26 +74,38 @@ private:
     bool closeOutputFile = false;
 
 public:
-    RootFileUpdater(const char* filename) {
-        outfile = new TFile(filename, "UPDATE");
+    // Constructor accepts binary directory and root file name as parameters
+    RootFileUpdater(const std::string& binaryDirectory, const std::string& rootFileName) {
+    fs::path outputDir(binaryDirectory); // Use the user-provided binary directory
+    fs::path inputPath(rootFileName);    // Use the input root filename to get the stem
+    std::string outputFileName = (outputDir / inputPath.stem()).string() + ".root";  // Construct output filename in the user directory
 
-        tree = dynamic_cast<TTree*>(outfile->Get("tree"));
-        if (!tree) {
-            tree = new TTree("tree", "Tree");
-        }
+    // Print the output file location
+    std::cout << "Output file will be saved to: " << outputFileName << std::endl;
+    
+    // Open the output ROOT file
+    outfile = new TFile(outputFileName.c_str(), "UPDATE");
 
-        histogram = dynamic_cast<TH1F*>(outfile->Get("histogram"));
-        if (!histogram) {
-            histogram = new TH1F("histogram", "Waveform max value", 200, 0, 200);
-        }
-
-        tree->Branch("event_id",         &event_id,        "event_id/i"); // event id
-        tree->Branch("timestamp",        &timestamp,       "timestamp/g"); // trigger time stamp 
-        tree->Branch("channel",          &channel,         "channel/i"); // event id
-        tree->Branch("resolution",       &resolution,      "resolution/g"); // resolution
-        tree->Branch("numberOfSamples",  &numberOfSamples, "numberOfSamples/i"); // number of samples
-        tree->Branch("waveform_samples", waveform_samples, "waveform_samples[numberOfSamples]/F"); // wavefrom samples. This is an array. 
+    // Initialize the tree and histogram
+    tree = dynamic_cast<TTree*>(outfile->Get("tree"));
+    if (!tree) {
+        tree = new TTree("tree", "Tree");
     }
+
+    histogram = dynamic_cast<TH1F*>(outfile->Get("histogram"));
+    if (!histogram) {
+        histogram = new TH1F("histogram", "Waveform max value", 200, 0, 200);
+    }
+
+    // Define the branches of the tree
+    tree->Branch("event_id", &event_id, "event_id/i");
+    tree->Branch("timestamp", &timestamp, "timestamp/g");
+    tree->Branch("channel", &channel, "channel/i");
+    tree->Branch("resolution", &resolution, "resolution/g");
+    tree->Branch("numberOfSamples", &numberOfSamples, "numberOfSamples/i");
+    tree->Branch("waveform_samples", waveform_samples, "waveform_samples[numberOfSamples]/F");
+}
+
 
     void FillDataFromRawFile(const string rawBinaryFilename, unsigned int channelNumber, bool closeFile=false) {
 
@@ -239,7 +251,7 @@ int main() {
     }
 
     // Initialize the RootFileUpdater
-    RootFileUpdater createRootFile(rootFileName.c_str());
+    RootFileUpdater createRootFile(binaryDirectory, rootFileName);
 
     // Process binary files in a loop
     bool closeFile = false;

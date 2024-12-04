@@ -6,21 +6,21 @@ def getAllFiles(Binary_directory):
     for root, dirs, files in os.walk(Binary_directory):
         for file in files:
             if file.endswith(".bin"):
-                items.append(os.path.join(root, file))
+            	if os.path.getsize(os.path.join(root, file)) > 0:
+                    items.append(os.path.join(root, file))
     return sorted(items)
 
 # Binary_directory = '/Users/nabinpoudyal/Data/MultiChannelDirectory/' # ONLY CHANGE THE FILE DIRECTORY. 
-
-Binary_directory = '/HDD3/microGRAMS_TPC_runs/Run30/LArComboFullDrift_Run30_DualTPC_Pedestal4_35ch_10072024/'
-
+Binary_directory = '/NAS/LAr_TPC_runs/Run31/LArCombo5cmDrift_Run31_UPS_Pedestal6_4ch_12032024/' # 5 is 12
 output_file = 'ListOfBinaryFilesToConvert.txt'
 
 fileNameAndPath = getAllFiles(Binary_directory)
 
 print(fileNameAndPath[0])
+# /Users/nabinpoudyal/Data/MultiChannelDirectory/CH0/wave_dig2-192.168.0.254_CH0_20231113122550-02.bin
 
-filename = fileNameAndPath[0].split("/")[-1].replace(".bin", ".root")
-# filename = re.sub(r'_CH\d+_','_', filename_)
+filename_ = fileNameAndPath[0].split("/")[-1].replace(".bin", ".root")
+filename = re.sub(r'_CH\d+_','_', filename_)
 
 print(filename)
 

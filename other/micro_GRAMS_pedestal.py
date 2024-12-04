@@ -87,7 +87,11 @@ def GRAMS_Pedestal(file_address, num_channels):
             column_name = f"ch{mytree.channel}"
             baseline_mean = np.average(raw_wf)
             event_mean.append(baseline_mean)
-        fluctuation_rms.append(stdev(event_mean)/np.sqrt(len(event_mean)))
+        try:
+            fluctuation_rms.append(stdev(event_mean)/np.sqrt(len(event_mean)))
+        except:
+            fluctuation_rms.append(0)
+            print("fluctuation got wired result")
         df[column_name] = wfarray
 
 

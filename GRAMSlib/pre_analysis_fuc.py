@@ -1,4 +1,4 @@
-# GRAMSlib/pre_analysis_fuc.py
+high_pass_filtered# GRAMSlib/pre_analysis_fuc.py
 
 def do_nothing_pre_analysis_module():
     print("nothing is being done!")
@@ -9,6 +9,7 @@ def do_nothing_pre_analysis_module():
 # status: Working
 
 def baseline_correct():
+    
     print("Correcting baseline...")
     return
 

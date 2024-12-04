@@ -1,7 +1,63 @@
 
 // The constructor in this class creates a root file containing trees/histograms. The public function fills the trees/histograms for each binary file.
 
-// #include <vector>
+#include <iostream>
+#include <readline/readline.h>
+#include <readline/history.h>
+#include <filesystem>
+#include <vector>
+#include <cstring>
+#include <algorithm>
+
+namespace fs = std::filesystem;
+
+// Function to generate suggestions for tab completion
+char* directoryCompletion(const char* text, int state) {
+    static std::vector<std::string> matches;
+    static size_t index = 0;
+
+    if (state == 0) { // Initialize new completion cycle
+        matches.clear();
+        index = 0;
+        std::string prefix(text);
+
+        // Check for directory completion
+        fs::path basePath = prefix.empty() ? fs::current_path() : fs::path(prefix).parent_path();
+        std::string searchPrefix = fs::path(prefix).filename().string();
+
+        try {
+            for (const auto& entry : fs::directory_iterator(basePath)) {
+                std::string entryPath = entry.path().string();
+                std::string filename = entry.path().filename().string();
+
+                if (filename.find(searchPrefix) == 0) { // Matches prefix
+                    if (entry.is_directory()) {
+                        matches.push_back(entryPath + "/"); // Add trailing slash for directories
+                    } else {
+                        matches.push_back(entryPath);
+                    }
+                }
+            }
+            std::sort(matches.begin(), matches.end()); // Optional: sort suggestions
+        } catch (const fs::filesystem_error&) {
+            // Handle invalid paths gracefully
+        }
+    }
+
+    if (index < matches.size()) {
+        return strdup(matches[index++].c_str());
+    }
+
+    return nullptr; // No more matches
+}
+
+// Configure readline with tab completion
+void configureReadline() {
+    rl_attempted_completion_function = [](const char* text, int start, int end) -> char** {
+        rl_completion_suppress_append = 1; // Prevent appending space after directory completion
+        return rl_completion_matches(text, directoryCompletion);
+    };
+}
 
 int numberOfEvents;
 
@@ -105,90 +161,115 @@ public:
     }
 };
 
+// Function to generate a list of .bin files
+std::vector<std::string> getBinaryFiles(const std::string& directory) {
+    std::vector<std::string> fileList;
+
+    for (const auto& entry : fs::recursive_directory_iterator(directory)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".bin") {
+            if (fs::file_size(entry) > 0) {
+                fileList.push_back(entry.path().string());
+            }
+        }
+    }
+    std::sort(fileList.begin(), fileList.end()); // Sort the files
+    return fileList;
+}
+
+// Function to derive the root file name from the first binary file
+std::string getRootFileName(const std::vector<std::string>& fileList) {
+    if (fileList.empty()) {
+        throw std::runtime_error("No files to process.");
+    }
+
+    std::string rootFileName = fs::path(fileList[0]).stem().string(); // Remove directory and extension
+    std::regex channelPattern("_CH\\d+_");
+    rootFileName = std::regex_replace(rootFileName, channelPattern, "_");
+    rootFileName += ".root";
+    return rootFileName;
+}
 
 int main() {
-
-    
-    
     auto start = std::chrono::steady_clock::now();
 
-    // int result = std::system("python fileListGenerator.py");
+    // Configure readline for tab completion
+    configureReadline();
 
-    // if (result == 0) {
-    //     std::cout << "fileListGenerator.py executed successfully." << std::endl;
-    // } else {
-    //     std::cerr << "Error executing Python script." << std::endl;
-    // }
-
-
-    std::ifstream inputFile("ListOfBinaryFilesToConvert.txt"); 
-
-    if (!inputFile) {
-        std::cerr << "Failed to open the file." << std::endl;
+    // Prompt user for input with tab completion enabled
+    char* input = readline("Enter the path to the binary directory: ");
+    if (input == nullptr || std::string(input).empty()) {
+        std::cerr << "No input provided. Exiting." << std::endl;
         return 1;
     }
 
-    std::string outfileName_;
-    std::getline(inputFile, outfileName_); // get first line as outfilename
-    const char* outfileName = outfileName_.c_str(); 
-    // cout << outfileName << endl;
+    std::string binaryDirectory(input);
+    free(input);
 
-    std::string line;
-    std::vector<std::string> fileList;
-
-    // Read lines from the file and push them into the vector
-    while (std::getline(inputFile, line)) {
-        fileList.push_back(line);
+    // Check if the directory exists
+    if (!fs::exists(binaryDirectory) || !fs::is_directory(binaryDirectory)) {
+        std::cerr << "Error: Directory does not exist or is not a valid directory." << std::endl;
+        return 1;
     }
 
-    // If the expected roofile name already existed in the directory then remove it first. 
-    if (std::filesystem::exists(outfileName)) {
-        std::cout << "File exists. Deleting " << outfileName << "..." << std::endl;
-        std::filesystem::remove(outfileName);
+    std::cout << "Directory entered: " << binaryDirectory << std::endl;
+
+    // Generate the list of binary files
+    auto fileList = getBinaryFiles(binaryDirectory);
+
+    if (fileList.empty()) {
+        std::cerr << "No valid .bin files found in the directory: " << binaryDirectory << std::endl;
+        return 1;
     }
 
-    bool stopLoop = false;
+    // Get the derived root file name
+    std::string rootFileName;
+    try {
+        rootFileName = getRootFileName(fileList);
+    } catch (const std::runtime_error& e) {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
+
+    std::cout << "Root file name: " << rootFileName << std::endl;
+
+    // Check if the root file already exists and remove it
+    if (std::filesystem::exists(rootFileName)) {
+        std::cout << "File exists. Deleting " << rootFileName << "..." << std::endl;
+        std::filesystem::remove(rootFileName);
+    }
+
+    // Initialize the RootFileUpdater
+    RootFileUpdater createRootFile(rootFileName.c_str());
+
+    // Process binary files in a loop
     bool closeFile = false;
+    for (size_t i = 0; i < fileList.size(); ++i) {
+        const std::string& binaryFile = fileList[i];
 
-    RootFileUpdater createRootFile(outfileName);
-
-    // for ( auto& iFile : fileList) {
-
-    for (auto iFile = fileList.begin(); iFile != fileList.end(); ++iFile) {
-		
-		numberOfEvents = 0;
         unsigned int channel_number = 9999;
         std::regex pattern("_CH(\\d+)_");
         std::smatch match;
 
-        if (std::regex_search(*iFile, match, pattern))
+        if (std::regex_search(binaryFile, match, pattern)) {
             channel_number = std::stoi(match[1].str());
-
-        //std::cout << "channel_number number: " << channel_number << std::endl;
-
-        if (stopLoop == true){
-            createRootFile.FillDataFromRawFile(*iFile, channel_number, closeFile = true);
-        } else if (std::next(iFile) != fileList.end()) {
-            createRootFile.FillDataFromRawFile(*iFile, channel_number, closeFile = false);
-
-        } else {
-            createRootFile.FillDataFromRawFile(*iFile, channel_number, closeFile = true);
-
         }
 
-        
-        if(stopLoop == true) {break;}
-        // std::cout << ": Data added to ROOT file from: " << fullFileName << std::endl;
+        std::cout << "Processing file: " << binaryFile << " (Channel: " << channel_number << ")" << std::endl;
 
+        // Close the root file after processing the last binary file
+        closeFile = (i == fileList.size() - 1);
+
+        // Fill data from the binary file into the root file
+        createRootFile.FillDataFromRawFile(binaryFile, channel_number, closeFile);
     }
 
-
- 
     auto end = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "Time to process all the events: " << duration.count()/60000 << " Minutes" << std::endl;
+    std::cout << "Time to process all the events: " << duration.count() / 60000.0 << " Minutes" << std::endl;
+
     return 0;
 }
+
 
 
 /** 

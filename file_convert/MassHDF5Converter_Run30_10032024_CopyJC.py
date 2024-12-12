@@ -83,13 +83,16 @@ thyme = time.time()
 # Define path from which script is run
 mast_path = os.getcwd() + '/'
 dir_obj = os.scandir(mast_path)
-# Define path to data
-data_path = '/'
-data_dir_obj = os.scandir(data_path)
 
+# Ask the user to input the file path
+file_path = prompt('Please enter the binary file directory: ', completer=completer)
+print(f'You selected: {file_path}')
 HDD = 'HDD2'  # Choose hard drive where desired data lives
 run_pref = 'Run30_SiPMData'  # Choose the run prefix or identifier for directory containing binary files
 
+# Define path to data
+data_path = file_path
+data_dir_obj = os.scandir(data_path)
 
 for entry in data_dir_obj:
     if entry.is_dir() and HDD in entry.name:
@@ -103,10 +106,11 @@ data_dir_obj = os.scandir(data_path)
 
 print(f'Current working directory: {mast_path}')
 print(f'Accessing data from: {data_path}')
-print()
+
 
 # Access each acquisition directory to produce HDF5 files from binary data
-acq_id = 'LArSiPMTesting'  # Define identifier for acquisition (Use common identifier to convert all binaries from given run)
+acq_id = ''
+#acq_id = 'LArSiPMTesting'  # Define identifier for acquisition (Use common identifier to convert all binaries from given run)
 acq_ct = 1
 for entry in data_dir_obj:
     if entry.is_dir() and acq_id in entry.name:
@@ -154,6 +158,7 @@ for entry in data_dir_obj:
         acq_ct+=1
 
         # Create directories for HDF5 files and their backups
+        print("h5 file saved to: ", acq_path)
         HDF5_genpath = f'{acq_path}/HDF5'
         HDF5b_genpath = f'{acq_path}/HDF5_backup'
 

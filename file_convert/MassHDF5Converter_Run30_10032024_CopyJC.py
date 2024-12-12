@@ -17,6 +17,13 @@ import gc
 import json
 from sys import getsizeof
 
+# for tab input
+from prompt_toolkit import prompt
+from prompt_toolkit.completion import PathCompleter
+
+# Create a PathCompleter for file path tab-completion
+completer = PathCompleter()
+
 # path = os.path.abspath(h5py.__file__)
 # print(path)
 

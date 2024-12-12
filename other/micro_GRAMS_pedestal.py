@@ -10,37 +10,15 @@ import numpy as np
 from array import array
 import pandas as pd
 import os
-import pathlib
-import readline
+from prompt_toolkit import prompt
+from prompt_toolkit.completion import PathCompleter
+
+# Create a PathCompleter for file path tab-completion
+completer = PathCompleter()
+
 from statistics import stdev
 
 
-def complete_path(text, state):
-    incomplete_path = pathlib.Path(text)
-    if incomplete_path.is_dir():
-        completions = [p.as_posix() for p in incomplete_path.iterdir()]
-    elif incomplete_path.exists():
-        completions = [incomplete_path]
-    else:
-        exists_parts = pathlib.Path('.')
-        for part in incomplete_path.parts:
-            test_next_part = exists_parts / part
-            if test_next_part.exists():
-                exists_parts = test_next_part
-
-        completions = []
-        for p in exists_parts.iterdir():
-            p_str = p.as_posix()
-            if p_str.startswith(text):
-                completions.append(p_str)
-    return completions[state]
-
-
-# we want to treat '/' as part of a word, so override the delimiters
-readline.set_completer_delims(' \t\n;')
-readline.parse_and_bind("tab: complete")
-readline.set_completer(complete_path)
-#print(input('tab complete a filename: '))
 
 def GRAMS_RMS(baseline_array):
     #print("Calculating RMS")
@@ -108,7 +86,8 @@ def baseline_correction(baseline_array):
 
 
 # Ask the user to input the file path
-file_path = input("Please enter the file path to the ROOT file: ")
+file_path = prompt('Please enter the file path to the ROOT file: ', completer=completer)
+print(f'You selected: {file_path}')
 
 # Convert to an absolute path if a relative path is provided
 file_path = os.path.abspath(file_path)
@@ -117,7 +96,11 @@ file_path = os.path.abspath(file_path)
 file_name = os.path.basename(file_path)
 pedestal_name = "pedestal_"+os.path.splitext(file_name)[0]+".png"
 # Ask the user to input the save path for the plot
-save_path = input("Please enter the path where you want to save the plot: ")
+save_path = prompt('Please enter the path where you want to save the plot(default same as root file directory): ', completer=completer)
+if(save_path == ''):
+    save_path = file_path
+print(f'You selected: {save_path}')
+
 
 # Convert to an absolute path if a relative path is provided
 save_path = os.path.abspath(save_path)

@@ -109,7 +109,7 @@ print(f'Accessing data from: {data_path}')
 
 
 # Access each acquisition directory to produce HDF5 files from binary data
-acq_id = ''
+acq_id = 'Pedestal'
 #acq_id = 'LArSiPMTesting'  # Define identifier for acquisition (Use common identifier to convert all binaries from given run)
 acq_ct = 1
 for entry in data_dir_obj:

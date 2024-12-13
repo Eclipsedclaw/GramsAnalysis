@@ -96,60 +96,55 @@ RunDir = prompt('Please enter the file identifier(default dig): ', completer=com
 if(RunDir==''):
     RunDir = 'dig'
 print(f'You selected: {RunDir}')
-#RunDir = 'LAr_TPC_runs'  # Choose the run prefix or identifier for directory containing binary files
-#Run = 'Run31'
 
 print(f'Accessing data from: {data_dir_obj}')
 print(f'Accessing run data from: {data_path}')
 
-# Access each acquisition directory to produce HDF5 files from binary data
-AcqID = 'LArCombo5cmDrift'  # Define identifier for acquisition (Use common identifier to convert all binaries from given run)
-AcqNo = 'Pedestal9'
+print(f'Processing binary data from acquisition path:{data_path}')
 Channel_identifier = 'CH'
 acq_ct= 1 
+chan_data_dict = {}
+acq_times = []
+chan_ct = 0
 for entry in data_dir_obj:
-    print(f'Processing binary data from acquisition path:{data_path}')
-    chan_data_dict = {}
-    acq_times = []
-    chan_ct = 0
-    for entry in data_dir_obj:
-        if entry.is_dir() and Channel_identifier in entry.name:
-            print("Now processing ", entry.name)
-            #print("Found one directory!")
-            chan_data_dict[entry.name] = []
-            chan_data_path = f'{data_path}/{entry.name}/'
-            chan_obj = os.scandir(chan_data_path)
-            for file in chan_obj:
-                if file.is_file():
-                    if not 'DS_Store' in file.name:
-                        chan_data_dict[entry.name]+=[file.name]
-                        chan_data_dict[entry.name].sort(key=natural_keys)
-            try:
-                file_num
-            except NameError:
-                file_num = int(len(chan_data_dict[entry.name]))
-                print(f'No. of files per channel found in {AcqNo}: {file_num}')
-                print()
-                #if chan_ct == 0:     # Only extract acquistion times through first set of binary files (i.e. first channel in channel dictionary)
-                    
-            for i in enumerate(chan_data_dict[entry.name]):
-                _, start, stop = 0,0,0
-                acqtime = []
-                for j in enumerate(i[1]):
-                    if j[1]=='_':
-                        _+=1
-                        if _ == 8:
-                            start = j[0]
-                    if j[1]=='-':
-                        stop=j[0]
-                for k in enumerate(i[1]):
-                    if k[0] in range(start+1,stop):
-                        acqtime.append(k[1])
-                acqtime = "".join(acqtime)
-                acq_times.append(acqtime)
-            #print(f'Binary file IDs by timestamp: {acq_times}')
-            #print()
-        chan_ct += 1    
+    #print("entry name is: ", entry.name)
+    if entry.is_dir() and Channel_identifier in entry.name:
+        print("Now processing ", entry.name)
+        chan_data_dict[entry.name] = []
+        chan_data_path = f'{data_path}/{entry.name}/'
+        chan_obj = os.scandir(chan_data_path)
+        for file in chan_obj:
+            if file.is_file():
+                if not 'DS_Store' in file.name:
+                    chan_data_dict[entry.name]+=[file.name]
+                    chan_data_dict[entry.name].sort(key=natural_keys)
+        try:
+            file_num
+        except NameError:
+            file_num = int(len(chan_data_dict[entry.name]))
+            print(f'No. of files per channel found in {data_path}: {file_num}')
+            print()
+            #if chan_ct == 0:     # Only extract acquistion times through first set of binary files (i.e. first channel in channel dictionary)
+
+        # TODO: Don't really understand this part        
+        for i in enumerate(chan_data_dict[entry.name]):
+            _, start, stop = 0,0,0
+            acqtime = []
+            for j in enumerate(i[1]):
+                if j[1]=='_':
+                    _+=1
+                    if _ == 8:
+                        start = j[0]
+                if j[1]=='-':
+                    stop=j[0]
+            for k in enumerate(i[1]):
+                if k[0] in range(start+1,stop):
+                    acqtime.append(k[1])
+            acqtime = "".join(acqtime)
+            acq_times.append(acqtime)
+        #print(f'Binary file IDs by timestamp: {acq_times}')
+        #print()
+    chan_ct += 1    
     #print("chan_data_dict is: ", chan_data_dict)
     acq_ct+=1
 

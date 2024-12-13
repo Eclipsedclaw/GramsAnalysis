@@ -17,6 +17,13 @@ import gc
 import json
 from sys import getsizeof
 
+# for tab input
+from prompt_toolkit import prompt
+from prompt_toolkit.completion import PathCompleter
+
+# Create a PathCompleter for file path tab-completion
+completer = PathCompleter()
+
 # path = os.path.abspath(h5py.__file__)
 # print(path)
 
@@ -76,13 +83,12 @@ thyme = time.time()
 # Define path from which script is run
 mast_path = os.getcwd() + '/'
 dir_obj = os.scandir(mast_path)
-# Define path to data
-data_path = '/'
-data_dir_obj = os.scandir(data_path)
+
 
 HDD = 'NAS'  # Choose hard drive where desired data lives
 RunDir = 'LAr_TPC_runs'  # Choose the run prefix or identifier for directory containing binary files
 Run = 'Run31'
+
 
 for entry in data_dir_obj:
     if entry.is_dir() and HDD in entry.name:
@@ -100,12 +106,14 @@ for entry in data_dir_obj:
 data_dir_obj = os.scandir(data_path)
 
 print(f'Current working directory: {mast_path}')
+
 print(f'Accessing run data from: {data_path}')
 
 # Access each acquisition directory to produce HDF5 files from binary data
 AcqID = 'LArCombo5cmDrift'  # Define identifier for acquisition (Use common identifier to convert all binaries from given run)
 AcqNo = 'Pedestal9'
 acq_ct= 1 
+
 for entry in data_dir_obj:
     if entry.is_dir() and AcqNo in entry.name and AcqID in entry.name:
         acq_path = f'{data_path}/{entry.name}'
@@ -153,7 +161,6 @@ for entry in data_dir_obj:
             
         #print(chan_data_dict)
         acq_ct+=1
-
 # Create directories for HDF5 files and their backups
 HDF5_genpath = f'{acq_path}/HDF5'
 HDF5b_genpath = f'{acq_path}/HDF5_backup'

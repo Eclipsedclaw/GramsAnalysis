@@ -16,6 +16,13 @@ import timeit
 import gc
 import json
 from sys import getsizeof
+from sys import exit
+
+from prompt_toolkit import prompt
+from prompt_toolkit.completion import PathCompleter
+
+# Create a PathCompleter for file path tab-completion
+completer = PathCompleter()
 
 # path = os.path.abspath(h5py.__file__)
 # print(path)
@@ -73,15 +80,27 @@ class ReadRawFile:
 # Runtime start timer
 thyme = time.time()
 
+# Ask the user to input the file path
+data_path = prompt('Please enter the CAEN binary file folder directory: ', completer=completer)
+if(data_path==''):
+    print("Empty directory!")
+    exit()
+print(f'You selected: {data_path}')
+
 # Define path from which script is run
-mast_path = os.getcwd() + '/'
-dir_obj = os.scandir(mast_path)
+#mast_path = os.getcwd() + '/'
+#dir_obj = os.scandir(mast_path)
 # Define path to data
-data_path = '/'
+#data_path = '/'
 data_dir_obj = os.scandir(data_path)
 
 HDD = 'NAS'  # Choose hard drive where desired data lives
-RunDir = 'LAr_TPC_runs'  # Choose the run prefix or identifier for directory containing binary files
+# Ask the user to input the binary file identifier
+RunDir = prompt('Please enter the file identifier(default dig): ', completer=completer)
+if(RunDir==''):
+    RunDir = 'dig'
+print(f'You selected: {RunDir}')
+#RunDir = 'LAr_TPC_runs'  # Choose the run prefix or identifier for directory containing binary files
 Run = 'Run31'
 
 for entry in data_dir_obj:
@@ -97,9 +116,9 @@ for entry in data_dir_obj:
                         data_path = f'{data_path}/{entry.name}'
                          
 #os.chdir(data_path)
-data_dir_obj = os.scandir(data_path)
+#data_dir_obj = os.scandir(data_path)
 
-print(f'Current working directory: {mast_path}')
+print(f'Accessing data from: {data_dir_obj}')
 print(f'Accessing run data from: {data_path}')
 
 # Access each acquisition directory to produce HDF5 files from binary data
@@ -107,6 +126,8 @@ AcqID = 'LArCombo5cmDrift'  # Define identifier for acquisition (Use common iden
 AcqNo = 'Pedestal9'
 acq_ct= 1 
 for entry in data_dir_obj:
+    print("data_path is: ", data_path)
+    print("entry.name is: ", entry.name)
     if entry.is_dir() and AcqNo in entry.name and AcqID in entry.name:
         acq_path = f'{data_path}/{entry.name}'
         acq_dir_obj = os.scandir(acq_path)

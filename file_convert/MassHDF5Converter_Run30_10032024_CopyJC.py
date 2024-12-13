@@ -88,23 +88,16 @@ if(data_path==''):
 print(f'You selected: {data_path}')
 
 # Define path from which script is run
-#mast_path = os.getcwd() + '/'
-#dir_obj = os.scandir(mast_path)
-# Define path to data
-#data_path = '/'
 data_dir_obj = os.scandir(data_path)
 
-HDD = 'NAS'  # Choose hard drive where desired data lives
+
 # Ask the user to input the binary file identifier
 RunDir = prompt('Please enter the file identifier(default dig): ', completer=completer)
 if(RunDir==''):
     RunDir = 'dig'
 print(f'You selected: {RunDir}')
 #RunDir = 'LAr_TPC_runs'  # Choose the run prefix or identifier for directory containing binary files
-Run = 'Run31'
-                         
-#os.chdir(data_path)
-#data_dir_obj = os.scandir(data_path)
+#Run = 'Run31'
 
 print(f'Accessing data from: {data_dir_obj}')
 print(f'Accessing run data from: {data_path}')
@@ -120,8 +113,8 @@ for entry in data_dir_obj:
     acq_times = []
     chan_ct = 0
     for entry in data_dir_obj:
-        print("Now processing folder ", entry.name)
         if entry.is_dir() and Channel_identifier in entry.name:
+            print("Now processing ", entry.name)
             #print("Found one directory!")
             chan_data_dict[entry.name] = []
             chan_data_path = f'{data_path}/{entry.name}/'
@@ -157,7 +150,7 @@ for entry in data_dir_obj:
             #print(f'Binary file IDs by timestamp: {acq_times}')
             #print()
         chan_ct += 1    
-    #print(chan_data_dict)
+    #print("chan_data_dict is: ", chan_data_dict)
     acq_ct+=1
 
 # Create directories for HDF5 files and their backups
@@ -178,8 +171,16 @@ print('CAEN (WV2) Channel Key: ' +  str(channel_key))
 print()
 SiPM_chans = set()
 Q_chans = set()
+
+# User input SiPM channels
+SiPM_channels_num = prompt('Please enter all the SiPM channels separate with white space(rest of the channels would be set to CSP): ', completer=completer)
+try:
+    SiPM_channels = [f"CH{num}" for num in SiPM_channels_num.split()]
+except NameError:
+    print(NameError)
+
 for key in range(len(channel_key)):
-    if channel_key[key] == 'CH0' or channel_key[key]== 'CH2' or channel_key[key]== 'CH3':
+    if channel_key[key] in SiPM_channels:
         SiPM_chans.add(channel_key[key])
     else:
         Q_chans.add(channel_key[key])      # Warning: unique for this dataset, injection calibration only has charge channels for now
@@ -188,6 +189,7 @@ print(f'CAEN Channel IDs for SiPMs: {SiPM_chans}')
 print(f'CAEN Channel IDs for CSPs: {Q_chans}')
 print()
 
+# TODO: Could this be read from data file? modify this part to either let user input with default or something else
 ##### Eventually build information from lines into into HDF5 file metadata
 record_length = 79998       # Given in ns
 pretrig_length = 15998       # Given in ns

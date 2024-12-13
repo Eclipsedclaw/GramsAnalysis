@@ -109,7 +109,7 @@ print(f'Accessing data from: {data_path}')
 
 
 # Access each acquisition directory to produce HDF5 files from binary data
-acq_id = 'Pedestal'
+acq_id = 'CH'
 #acq_id = 'LArSiPMTesting'  # Define identifier for acquisition (Use common identifier to convert all binaries from given run)
 acq_ct = 1
 for entry in data_dir_obj:
@@ -124,7 +124,7 @@ for entry in data_dir_obj:
         chan_ct = 0
         for entry in acq_dir_obj:
             if entry.is_dir():
-                if 'CH' in entry.name:
+                if 'Pedestal' in entry.name:
                     chan_data_dict[entry.name] = []
                     chan_data_path = f'{acq_path}/{entry.name}/'
                     chan_obj = os.scandir(chan_data_path)

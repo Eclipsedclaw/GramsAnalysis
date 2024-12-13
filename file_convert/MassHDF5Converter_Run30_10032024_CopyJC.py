@@ -33,6 +33,7 @@ def atoi(text):
 def natural_keys(text):
     return [atoi(c) for c in re.split(r'(\d+)', text)]
 
+# TODO: check the header file to extract the information
 def pts_per_trace(_):   # Creates time array given record length and sampling rate, e.g. elements are spaced by 8 (2) ns if SR is 125 (500) MSa/s
     pts = _ + 1 
     trace_length = np.arange(0, pts, 2)  

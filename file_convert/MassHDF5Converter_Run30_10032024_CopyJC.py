@@ -102,18 +102,6 @@ if(RunDir==''):
 print(f'You selected: {RunDir}')
 #RunDir = 'LAr_TPC_runs'  # Choose the run prefix or identifier for directory containing binary files
 Run = 'Run31'
-
-for entry in data_dir_obj:
-    if entry.is_dir() and HDD in entry.name:
-        data_path = f'{data_path}{entry.name}'
-        dir_obj = os.scandir(data_path)
-        for entry in dir_obj:
-            if entry.is_dir() and RunDir in entry.name:
-                data_path = f'{data_path}/{entry.name}'
-                dir_obj = os.scandir(data_path)
-                for entry in dir_obj:
-                    if entry.is_dir() and Run in entry.name:
-                        data_path = f'{data_path}/{entry.name}'
                          
 #os.chdir(data_path)
 #data_dir_obj = os.scandir(data_path)
@@ -124,60 +112,57 @@ print(f'Accessing run data from: {data_path}')
 # Access each acquisition directory to produce HDF5 files from binary data
 AcqID = 'LArCombo5cmDrift'  # Define identifier for acquisition (Use common identifier to convert all binaries from given run)
 AcqNo = 'Pedestal9'
+Channel_identifier = 'CH'
 acq_ct= 1 
 for entry in data_dir_obj:
-    print("data_path is: ", data_path)
-    print("entry.name is: ", entry.name)
-    if entry.is_dir() and AcqNo in entry.name and AcqID in entry.name:
-        acq_path = f'{data_path}/{entry.name}'
-        acq_dir_obj = os.scandir(acq_path)
-        print(f'Processing binary data from acquisition path:{acq_path}')
-        print()
-        # Initialize metadata and file path dictionary
-        chan_data_dict = {}
-        acq_times = []
-        chan_ct = 0
-        for entry in acq_dir_obj:
-            if entry.is_dir() and 'CH' in entry.name:
-                chan_data_dict[entry.name] = []
-                chan_data_path = f'{acq_path}/{entry.name}/'
-                chan_obj = os.scandir(chan_data_path)
-                for file in chan_obj:
-                    if file.is_file():
-                        if not 'DS_Store' in file.name:
-                            chan_data_dict[entry.name]+=[file.name]
-                            chan_data_dict[entry.name].sort(key=natural_keys)
-                if chan_ct == 0:
-                    file_num = int(len(chan_data_dict[entry.name]))
-                    print(f'No. of files per channel found in {AcqNo}: {file_num}')
-                    print()
-                    #if chan_ct == 0:     # Only extract acquistion times through first set of binary files (i.e. first channel in channel dictionary)
-                     
-                    for i in enumerate(chan_data_dict[entry.name]):
-                        _, start, stop = 0,0,0
-                        acqtime = []
-                        for j in enumerate(i[1]):
-                            if j[1]=='_':
-                                _+=1
-                                if _ == 8:
-                                    start = j[0]
-                            if j[1]=='-':
-                                stop=j[0]
-                        for k in enumerate(i[1]):
-                            if k[0] in range(start+1,stop):
-                                acqtime.append(k[1])
-                        acqtime = "".join(acqtime)
-                        acq_times.append(acqtime)
-                    #print(f'Binary file IDs by timestamp: {acq_times}')
-                    #print()
-            chan_ct += 1
-            
-        #print(chan_data_dict)
-        acq_ct+=1
+    print(f'Processing binary data from acquisition path:{data_path}')
+    chan_data_dict = {}
+    acq_times = []
+    chan_ct = 0
+    for entry in data_dir_obj:
+        print("Now processing folder ", entry.name)
+        if entry.is_dir() and Channel_identifier in entry.name:
+            #print("Found one directory!")
+            chan_data_dict[entry.name] = []
+            chan_data_path = f'{data_path}/{entry.name}/'
+            chan_obj = os.scandir(chan_data_path)
+            for file in chan_obj:
+                if file.is_file():
+                    if not 'DS_Store' in file.name:
+                        chan_data_dict[entry.name]+=[file.name]
+                        chan_data_dict[entry.name].sort(key=natural_keys)
+            try:
+                file_num
+            except NameError:
+                file_num = int(len(chan_data_dict[entry.name]))
+                print(f'No. of files per channel found in {AcqNo}: {file_num}')
+                print()
+                #if chan_ct == 0:     # Only extract acquistion times through first set of binary files (i.e. first channel in channel dictionary)
+                    
+            for i in enumerate(chan_data_dict[entry.name]):
+                _, start, stop = 0,0,0
+                acqtime = []
+                for j in enumerate(i[1]):
+                    if j[1]=='_':
+                        _+=1
+                        if _ == 8:
+                            start = j[0]
+                    if j[1]=='-':
+                        stop=j[0]
+                for k in enumerate(i[1]):
+                    if k[0] in range(start+1,stop):
+                        acqtime.append(k[1])
+                acqtime = "".join(acqtime)
+                acq_times.append(acqtime)
+            #print(f'Binary file IDs by timestamp: {acq_times}')
+            #print()
+        chan_ct += 1    
+    #print(chan_data_dict)
+    acq_ct+=1
 
 # Create directories for HDF5 files and their backups
-HDF5_genpath = f'{acq_path}/HDF5'
-HDF5b_genpath = f'{acq_path}/HDF5_backup'
+HDF5_genpath = f'{data_path}/HDF5'
+HDF5b_genpath = f'{data_path}/HDF5_backup'
 print(f'Writing HDF5 converted files to {HDF5_genpath}')
 print()
 
@@ -215,7 +200,7 @@ print(f'No. of time samples taken per trace: {samples}')
 ################### Build numpy waveform matrix  ################## 
 for j in range(file_num):
     for i in track(range(len(channel_key)),description=f'Processing events from file {j+1}/{file_num}'):
-        filename = f'{acq_path}/{channel_key[i]}/{chan_data_dict[channel_key[i]][j]}'
+        filename = f'{data_path}/{channel_key[i]}/{chan_data_dict[channel_key[i]][j]}'
         events = ReadRawFile(filename)
         compiled_events = events.read_raw_data(0, events.input_raw_file)   # Zero used as place holder, use select_events to specify
         if i==0:

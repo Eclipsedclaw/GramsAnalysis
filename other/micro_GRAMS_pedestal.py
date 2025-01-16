@@ -98,7 +98,7 @@ pedestal_name = "pedestal_"+os.path.splitext(file_name)[0]+".png"
 # Ask the user to input the save path for the plot
 save_path = prompt('Please enter the path where you want to save the plot(default same as root file directory): ', completer=completer)
 if(save_path == ''):
-    save_path = file_path
+    save_path = os.path.dirname(file_path)
 print(f'You selected: {save_path}')
 
 

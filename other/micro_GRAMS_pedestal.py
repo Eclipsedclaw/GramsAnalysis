@@ -54,23 +54,33 @@ def GRAMS_Pedestal(file_address, num_channels):
     fluctuation_rms = []
     df = pd.DataFrame()
     print("Reading root file..")
+    channel_mapping = {}  # To store the mapping between mytree.channel and sequential indices
+    current_index = 0     # Start the sequence from 0 or 1, as needed
+
+    channel_data = {}  # Temporary storage for channel data
+
     for i in range(num_channels):
         wfarray = []
         event_mean = []
         for j in range(num_events):
-            mytree.GetEntry(i*num_events + j)
-            #wfarray = np.random.random(len(mytree.waveform_samples))
+            mytree.GetEntry(i * num_events + j)
             wfarray.extend(raw_wf)
-            #print("wfarray length is: ", len(wfarray))
-            column_name = f"ch{mytree.channel}"
+            column_name = f"Ch{mytree.channel}"  # Retain the original channel value in the column name
             baseline_mean = np.average(raw_wf)
             event_mean.append(baseline_mean)
         try:
-            fluctuation_rms.append(stdev(event_mean)/np.sqrt(len(event_mean)))
+            fluctuation_rms.append(stdev(event_mean) / np.sqrt(len(event_mean)))
         except:
             fluctuation_rms.append(0)
-            print("fluctuation got wired result")
-        df[column_name] = wfarray
+            print("fluctuation got a wired result")
+
+        # Store the data temporarily using the channel as the key
+        channel_data[mytree.channel] = wfarray
+
+    # Add columns to the DataFrame in ascending order of channel numbers
+    for channel in sorted(channel_data.keys()):
+        column_name = f"Ch{channel}"  # Create the column name from the sorted channel
+        df[column_name] = channel_data[channel]
 
 
     print(df.head())
@@ -98,7 +108,7 @@ pedestal_name = "pedestal_"+os.path.splitext(file_name)[0]+".png"
 # Ask the user to input the save path for the plot
 save_path = prompt('Please enter the path where you want to save the plot(default same as root file directory): ', completer=completer)
 if(save_path == ''):
-    save_path = file_path
+    save_path = os.path.dirname(file_path)
 print(f'You selected: {save_path}')
 
 

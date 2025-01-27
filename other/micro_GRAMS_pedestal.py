@@ -54,10 +54,9 @@ def GRAMS_Pedestal(file_address, num_channels):
     fluctuation_rms = []
     df = pd.DataFrame()
     print("Reading root file..")
-    channel_mapping = {}  # To store the mapping between mytree.channel and sequential indices
-    current_index = 0     # Start the sequence from 0 or 1, as needed
 
     channel_data = {}  # Temporary storage for channel data
+    channel_rms = {}   # Temporary storage for fluctuation_rms
 
     for i in range(num_channels):
         wfarray = []
@@ -69,19 +68,21 @@ def GRAMS_Pedestal(file_address, num_channels):
             baseline_mean = np.average(raw_wf)
             event_mean.append(baseline_mean)
         try:
-            fluctuation_rms.append(stdev(event_mean) / np.sqrt(len(event_mean)))
+            rms_value = stdev(event_mean) / np.sqrt(len(event_mean))
         except:
-            fluctuation_rms.append(0)
+            rms_value = 0
             print("fluctuation got a wired result")
 
-        # Store the data temporarily using the channel as the key
+        # Store data and fluctuation_rms using the channel as the key
         channel_data[mytree.channel] = wfarray
+        channel_rms[mytree.channel] = rms_value
 
     # Add columns to the DataFrame in ascending order of channel numbers
+    fluctuation_rms = []  # Reset fluctuation_rms to follow the sorted order
     for channel in sorted(channel_data.keys()):
         column_name = f"Ch{channel}"  # Create the column name from the sorted channel
         df[column_name] = channel_data[channel]
-
+        fluctuation_rms.append(channel_rms[channel])  # Append rms in the same order
 
     print(df.head())
     return df, fluctuation_rms

@@ -57,7 +57,6 @@ def GRAMS_Pedestal(file_address, num_channels):
 
     channel_data = {}  # Temporary storage for channel data
     channel_rms = {}   # Temporary storage for fluctuation_rms
-
     for i in range(num_channels):
         wfarray = []
         event_mean = []
@@ -72,6 +71,7 @@ def GRAMS_Pedestal(file_address, num_channels):
         except:
             rms_value = 0
             print("fluctuation got a wired result")
+        print(column_name)
 
         # Store data and fluctuation_rms using the channel as the key
         channel_data[mytree.channel] = wfarray
@@ -136,6 +136,35 @@ for i in range(num_channels):
     #plt.plot(corrected_data)
     RMS_data.append(GRAMS_RMS(corrected_data))
     print("Processing CAEN channel "+ str(data_wf.columns[i])+" ("+str(i+1)+"/"+str(num_channels)+")")
+
+# Modification by Robin - Save the raw data, RMS_data and RMS_errors for later analysis since it doesn't show the actual values in the plot
+#print(RMS_data)
+#print("\n")
+#print(RMS_errors)
+#print(type(RMS_data))
+#print(type(RMS_errors))
+
+choice = str(input("Do you want to save the raw RMS data/errors into a file? (Y/N) ")).lower()
+if choice=="y":
+    data_path = prompt("Please enter the path where the raw data should be saved. ", completer=completer)
+    if data_path=="":
+        data_path=os.path.dirname(file_path)
+    data_path = os.path.abspath(data_path)
+    data_name = os.path.join(data_path, "raw_data.txt")
+    print("Save raw arrays to: ", data_name)
+    HV_val = str(input("HV value?: "))
+    rms_data_str = str(RMS_data)
+    rms_err_str = str(RMS_errors)
+    with open(data_name, "a") as array_file:
+        array_file.write(f"HV:{HV_val}\n{rms_data_str}\n{rms_err_str}\n")
+    array_file.close()
+    print("Data written to file.")
+elif choice=="n":
+    pass
+else:
+    print("Something strange happened.")
+    pass
+
 
 # Create the bar plot
 plt.figure(figsize=(10, 6))  # Set figure size

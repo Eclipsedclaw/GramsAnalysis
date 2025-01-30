@@ -84,7 +84,7 @@ public:
     std::cout << "Output file will be saved to: " << outputFileName << std::endl;
     
     // Open the output ROOT file
-    outfile = new TFile(outputFileName.c_str(), "UPDATE");
+    outfile = new TFile(outputFileName.c_str(), "RECREATE");
 
     // Initialize the tree and histogram
     tree = dynamic_cast<TTree*>(outfile->Get("tree"));

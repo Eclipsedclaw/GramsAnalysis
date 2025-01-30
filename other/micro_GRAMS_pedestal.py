@@ -152,11 +152,11 @@ if choice=="y":
     data_path = os.path.abspath(data_path)
     data_name = os.path.join(data_path, "raw_data.txt")
     print("Save raw arrays to: ", data_name)
-    HV_val = str(input("HV value?: "))
+#    HV_val = str(input("HV value?: "))
     rms_data_str = str(RMS_data)
     rms_err_str = str(RMS_errors)
     with open(data_name, "a") as array_file:
-        array_file.write(f"HV:{HV_val}\n{rms_data_str}\n{rms_err_str}\n")
+        array_file.write(f"{rms_data_str}\n{rms_err_str}\n")
     array_file.close()
     print("Data written to file.")
 elif choice=="n":

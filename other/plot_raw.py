@@ -1,3 +1,9 @@
+"""
+Plot all waveform from CAEN generated root file
+author: Jiancheng Zeng
+Date: Feb 3, 2024
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import ROOT

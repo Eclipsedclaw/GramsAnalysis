@@ -104,7 +104,7 @@ for n in tqdm(range(repeat)):
         numberOfSamples = tree.numberOfSamples
         waveform_samples = np.array(tree.waveform_samples)      # 1D array with 37500 elements [mV]
         rms = np.sqrt(np.mean(waveform_samples[:1900]**2))
-        #waveform_samples = waveform_samples - np.mean(waveform_samples[:1900]) # baseline correction
+        waveform_samples = waveform_samples - np.mean(waveform_samples[:1900]) # baseline correction
         #print("max value is: ",max(abs(waveform_samples[2200:])))
         #print("rms value is: ", rms)
         if (max(abs(waveform_samples[2200:]-np.mean(waveform_samples[:1900]))) > 5 * rms):

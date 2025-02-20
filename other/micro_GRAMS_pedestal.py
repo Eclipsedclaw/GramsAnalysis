@@ -181,7 +181,7 @@ plt.xlabel('channel number')  # Label for x-axis
 plt.ylabel('RMS/mV')          # Label for y-axis
 
 # Set plot title using the extracted file name
-plt.title(f'RMS performance for all CSP channels - {file_name}', fontsize=14)
+plt.title(f'RMS - {file_name}', fontsize=14)
 plt.grid(True, linestyle='--')  # Add grid lines to the plot
 
 

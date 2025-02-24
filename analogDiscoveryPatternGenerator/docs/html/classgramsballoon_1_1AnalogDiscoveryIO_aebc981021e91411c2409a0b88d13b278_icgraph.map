@@ -1,0 +1,5 @@
+<map id="gramsballoon::AnalogDiscoveryIO::setupAnalogOut" name="gramsballoon::AnalogDiscoveryIO::setupAnalogOut">
+<area shape="rect" id="Node000001" title="Setup the analog output voltage i.e., W1 and W1 output pulse." alt="" coords="108,5,337,45"/>
+<area shape="rect" id="Node000002" href="$main_8cc.html#abf9e6b7e6f15df4b525a2e7705ba3089" title=" " alt="" coords="5,13,60,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="94,28,60,28,60,23,94,23"/>
+</map>

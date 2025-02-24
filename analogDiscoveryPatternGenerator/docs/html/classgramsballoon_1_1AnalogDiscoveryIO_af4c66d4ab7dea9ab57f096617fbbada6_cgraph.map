@@ -1,0 +1,5 @@
+<map id="gramsballoon::AnalogDiscoveryIO::connect" name="gramsballoon::AnalogDiscoveryIO::connect">
+<area shape="rect" id="Node000001" title="Connects to the device with input ID, eg., 0 or 1." alt="" coords="5,5,235,45"/>
+<area shape="rect" id="Node000002" href="$namespacegramsballoon.html#a6b829afce8a4b2abae819c14db400a2d" title="Converts the device ID into string for printing." alt="" coords="283,5,451,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="235,23,269,23,269,28,235,28"/>
+</map>

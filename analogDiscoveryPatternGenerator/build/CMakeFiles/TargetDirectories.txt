@@ -1,0 +1,3 @@
+/home/discovery/GramsAnalysis/analogDiscoveryPatternGenerator/build/CMakeFiles/ad2_test.dir
+/home/discovery/GramsAnalysis/analogDiscoveryPatternGenerator/build/CMakeFiles/edit_cache.dir
+/home/discovery/GramsAnalysis/analogDiscoveryPatternGenerator/build/CMakeFiles/rebuild_cache.dir

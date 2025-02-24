@@ -1,0 +1,52 @@
+# Doxygen configuration file
+
+# Project details
+PROJECT_NAME           = "CLI-software for PPS and PAT generator using Analog discovery 3"
+PROJECT_NUMBER         = "1.0"
+PROJECT_BRIEF          = "This is reference manual."
+OUTPUT_DIRECTORY       = "docs"
+
+# Source code information
+FILE_PATTERNS         = *.cc *.hh
+
+# Documentation format
+GENERATE_HTML         = YES
+GENERATE_LATEX        = NO
+GENERATE_MAN          = NO
+GENERATE_RTF          = NO
+
+# Source code inclusion
+SOURCE_BROWSER        = YES
+INLINE_SOURCES        = YES
+STRIP_CODE_COMMENTS   = No
+
+# Extract documentation
+EXTRACT_ALL           = YES   # Set to NO if you only want explicitly documented items
+EXTRACT_PRIVATE       = NO
+EXTRACT_STATIC        = NO
+
+# Class and function documentation
+HIDE_UNDOC_CLASSES    = NO
+HIDE_UNDOC_MEMBERS    = NO
+
+# Output style
+GENERATE_TREEVIEW     = NO   # Adds a sidebar with class structure (HTML only)
+
+# Markdown support
+MARKDOWN_SUPPORT      = YES
+
+# Graph support (optional)
+HAVE_DOT              = YES   # Enables diagrams (requires Graphviz)
+DOT_PATH              = /usr/bin/dot
+CALL_GRAPH            = YES
+CALLER_GRAPH          = YES
+CLASS_DIAGRAMS        = YES
+
+# Warnings and debugging
+WARNINGS              = YES
+WARN_IF_UNDOCUMENTED  = YES
+WARN_FORMAT           = "$file:$line: $text"
+
+# Running Doxygen
+GENERATE_TAGFILE      = "docs/doxygen.tag"
+

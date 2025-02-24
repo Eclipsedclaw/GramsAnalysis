@@ -17,13 +17,17 @@
 #define ANALOG_OUT_APPLY 2
 
 /**
- * A class to handle AnalogDiscovery
- *
+ * @class AnalogDiscoveryIO 
+ * @brief A class to handle AnalogDiscovery.cc 
+ * This class connects to the AD3 via USB connection.
+ * and setup the output voltage for a pulse generated.  
  * @author Tsubasa Tamba, Shota Arai
  * @date 2023-03-15
+ * 
  */
 
 namespace gramsballoon {
+
 
 class AnalogDiscoveryIO {
 public:

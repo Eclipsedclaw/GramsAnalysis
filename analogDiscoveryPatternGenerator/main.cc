@@ -15,6 +15,12 @@ bool check_ManualTrigger() {
   return poll(&cli_input, 1, 0) == 1;
 }
 
+bool check_PPS_extTrigger(){
+
+return true;
+}
+
+
 
 int main(int argc, char const *argv[]) {
   double voltage = 0.0;
@@ -54,9 +60,11 @@ int main(int argc, char const *argv[]) {
   while (true){
 
     while(true){
-      io.setupAnalogOut(0, 0, voltage, PPS); 
-      std::this_thread::sleep_for(std::chrono::seconds(1)); //T2 use trigger input for PPS generation
-        
+      
+      if (check_PPS_extTrigger) {
+        io.setupAnalogOut(0, 0, voltage, PPS); 
+        std::this_thread::sleep_for(std::chrono::seconds(1)); //T2 use trigger input for PPS generation
+      }  
       if (check_ManualTrigger()) {
         std::getline(std::cin, ManualTrigger);  
         std::cout << "Received trigger: " << ManualTrigger << std::endl;
@@ -67,16 +75,9 @@ int main(int argc, char const *argv[]) {
         }
       }
      
-      // Fed to DIO pin and apply OR logic
-      //io.implementORLogic(); 
-      
-
-
     }
 
   }
-
-
 
   return 0;
 }

@@ -4,6 +4,10 @@
 
 namespace gramsballoon {
 
+/**
+* @brief Converts the device ID into string for printing. 
+*/
+
 std::string convert_vector_string(const std::vector<char> &vec) {
   std::string str;
   for (const auto &c: vec) {
@@ -14,6 +18,12 @@ std::string convert_vector_string(const std::vector<char> &vec) {
   }
   return str;
 }
+
+
+/**
+ * @class AnalogDiscoveryIO
+ * @brief Connects the device and setup the output voltages.
+ */
 
 AnalogDiscoveryIO::AnalogDiscoveryIO() {
 }
@@ -39,6 +49,10 @@ int AnalogDiscoveryIO::initialize() {
   return 0;
 }
 
+/**
+ * @brief Connects to the device with input ID, eg., 0 or 1
+ */
+
 int AnalogDiscoveryIO::connect(int device_id) {
   if (device_id < 0 || device_id >= numDevices_) {
     std::cerr << "Device ID " << device_id << " not connected" << std::endl;
@@ -60,6 +74,13 @@ int AnalogDiscoveryIO::connect() {
   return 0;
 }
 
+
+/**
+ * @brief Setup the analog output voltage i.e., W1 and W1 output pulse
+ * @param device_id, channel, init_value, signalType are ID of the device, W1 or W2, voltage offset, and signal types PPS or PAT. 
+ */
+
+
 void AnalogDiscoveryIO::setupAnalogOut(int device_id, int channel, double init_value, std::string signalType) {
   if (device_id < 0 || device_id >= NumDevices()) {
     std::cerr << "Device ID " << device_id << " not connected" << std::endl;
@@ -75,8 +96,8 @@ void AnalogDiscoveryIO::setupAnalogOut(int device_id, int channel, double init_v
   const double sampleRate = 1e7; // 10 MHz ==> 100 ns per sample, 
   std::vector<double> samples(sampleCount, 0.0);
 
-  // Set the 5001st sample to 5V
-  samples[sampleCount/2] = 5.0;
+  // Set the 2nd sample to 5V
+  samples[1] = 5.0;
 
 
   FDwfAnalogOutReset(handlerList_[device_id], 0); // Reset the W1 before generating output
@@ -90,11 +111,9 @@ void AnalogDiscoveryIO::setupAnalogOut(int device_id, int channel, double init_v
   FDwfAnalogOutNodeOffsetSet(handlerList_[device_id], channel, AnalogOutNodeCarrier, init_value);
 
   FDwfAnalogOutTriggerSlopeSet(handlerList_[device_id], channel, DwfTriggerSlopeRise); 
-  // bool TriggerCondition = FDwfAnalogOutTriggerSourceSet(handlerList_[device_id], channel, triggerInput); 
 
-  // Configure trigger T1 for W1 to generate PAT 
   if (signalType=="PAT") {
-      FDwfAnalogOutRunSet(handlerList_[device_id], channel,0.01 ); // 10ms
+      FDwfAnalogOutRunSet(handlerList_[device_id], channel, 0.01 ); // 10ms
       FDwfAnalogOutConfigure(handlerList_[device_id], channel, ANALOG_OUT_START); // In the end to start the run. 
       // Run the pulse generator for 8 ms
       std::this_thread::sleep_for(std::chrono::milliseconds(10));

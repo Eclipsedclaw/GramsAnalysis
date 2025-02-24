@@ -17,4 +17,4 @@ To install the project, follow these steps:
 
 ## Usage
 
-Simply run the executable in the build directory `ad2_test [voltage]`. This example will set the output voltage to the specified value(argument) for 1 sec.
+Simply run the executable in the build directory `ad2_test`. 

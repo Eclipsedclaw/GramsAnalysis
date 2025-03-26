@@ -103,11 +103,9 @@ for n in tqdm(range(repeat)):
         resolution = tree.resolution                            # 8 ns
         numberOfSamples = tree.numberOfSamples
         waveform_samples = np.array(tree.waveform_samples)      # 1D array with 37500 elements [mV]
-        rms = np.sqrt(np.mean(waveform_samples[:1900]**2))
-        waveform_samples = waveform_samples - np.mean(waveform_samples[:1900]) # baseline correction
-        #print("max value is: ",max(abs(waveform_samples[2200:])))
-        #print("rms value is: ", rms)
-        if (max(abs(waveform_samples[2200:]-np.mean(waveform_samples[:1900]))) > 5 * rms):
+        waveform_samples = waveform_samples - np.mean(waveform_samples[:1500]) # baseline correction
+        rms = np.sqrt(np.mean(waveform_samples[:1500]**2))
+        if np.mean(waveform_samples[2200:][np.argpartition(waveform_samples[2200:], -5000)[-5000:]]) - np.mean(waveform_samples[:1500]) > 4 * rms:
             interesting_event = True
         label = "Ch" + str(channel)
         plt.plot(time,waveform_samples,label=label)

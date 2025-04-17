@@ -35,7 +35,7 @@ if(save_path == ''):
 print(f'You selected: {save_path}')
 
 # Define the new folder name
-new_folder = 'raw_waveform'
+new_folder = 'CSP_stats'
 
 # Create the full path including the new folder
 full_save_path = os.path.join(save_path, new_folder)
@@ -91,6 +91,7 @@ repeat = NbTraces
 
 for n in tqdm(range(repeat)):
     interesting_event = False
+    average = np.zeros(37500)
     for x in range(num_channels):
         tree.GetEntry(NbTraces*x+n)                     # read entry 20
         if(x != 0 and event_id != tree.event_id):
@@ -103,23 +104,12 @@ for n in tqdm(range(repeat)):
         resolution = tree.resolution                            # 8 ns
         numberOfSamples = tree.numberOfSamples
         waveform_samples = np.array(tree.waveform_samples)      # 1D array with 37500 elements [mV]
-        waveform_samples = waveform_samples - np.mean(waveform_samples[:1500]) # baseline correction
-        rms = np.sqrt(np.mean(waveform_samples[:1500]**2))
-        if np.mean(waveform_samples[2200:][np.argpartition(waveform_samples[2200:], -5000)[-5000:]]) - np.mean(waveform_samples[:1500]) > 4 * rms and rms > 1:
-            interesting_event = True
+        #waveform_samples = waveform_samples - np.mean(waveform_samples[:1500]) # baseline correction
+        average = average + waveform_samples
         label = "Ch" + str(channel)
-        plt.plot(time,waveform_samples,label=label)
-        plt.legend(ncol=12, loc = "upper center",fontsize=5)
-    plt.title('Waveform for Event ID = '+ str(event_id))
-    plt.xlabel('time [us]')
-    plt.ylabel('output [mV]')
-    plt.xlim(0,300)
-    plt.ylim(-300,300)
-    if(interesting_event==True):
-        plt.savefig(full_save_path+'/***'+str(n).zfill(4)+"_"+str(event_id).zfill(4)+".png")
-    else:
-        plt.savefig(full_save_path+'/'+str(n).zfill(4)+"_"+str(event_id).zfill(4)+".png")
     #plt.show()
-    plt.clf()
 
+plt.plot(average)
+plt.show()
+plt.savefig(full_save_path+'/*'+str(n).zfill(4)+"_"+str(event_id).zfill(4)+".png")
 print("Done")

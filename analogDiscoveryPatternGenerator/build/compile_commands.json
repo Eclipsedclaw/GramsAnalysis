@@ -1,8 +1,0 @@
-[
-{
-  "directory": "/home/mad/projects/Aramaki/GramsAnalysis/analogDiscoveryPatternGenerator/build",
-  "command": "/usr/bin/g++ -I/Library/Frameworks/dwf.framework/Headers -I/home/mad/projects/Aramaki/GramsAnalysis/analogDiscoveryPatternGenerator -g -W -Wall -std=c++17 -o CMakeFiles/ad2_test.dir/main.cc.o -c /home/mad/projects/Aramaki/GramsAnalysis/analogDiscoveryPatternGenerator/main.cc",
-  "file": "/home/mad/projects/Aramaki/GramsAnalysis/analogDiscoveryPatternGenerator/main.cc",
-  "output": "CMakeFiles/ad2_test.dir/main.cc.o"
-}
-]

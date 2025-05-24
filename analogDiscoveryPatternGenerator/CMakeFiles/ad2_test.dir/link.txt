@@ -1,1 +1,0 @@
-/usr/bin/c++ -g -W -Wall -Wl,--dependency-file=CMakeFiles/ad2_test.dir/link.d CMakeFiles/ad2_test.dir/main.cc.o CMakeFiles/ad2_test.dir/AnalogDiscoveryIO.cc.o -o ad2_test  -ldwf

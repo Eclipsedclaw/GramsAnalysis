@@ -25,17 +25,18 @@ int main(void)
   FDwfAnalogOutConfigure(device_data->handle, 1, true);
 
   // Failed OR gate attempt
-  // FDwfDigitalOutEnableSet(device_data->handle, 0, false);
-  // FDwfDigitalOutEnableSet(device_data->handle, 1, false);
-  // FDwfDigitalOutEnableSet(device_data->handle, 15, true);
-  // FDwfDigitalOutTypeSet(device_data->handle, 1, DwfDigitalOutTypeROM);
-  // FDwfDigitalOutDividerSet(device_data->handle, 15, 1);
-  // FDwfDigitalOutOutputSet(device_data->handle, 15, DwfDigitalOutOutputPushPull);
-  // uint8_t truthTableOR = 0b00001110;
-  // FDwfDigitalOutDataSet(device_data->handle, 15, &truthTableOR, 8);
-  // FDwfDigitalOutConfigure(device_data->handle, true);
+  FDwfDigitalOutEnableSet(device_data->handle, 0, 0);
+  FDwfDigitalOutEnableSet(device_data->handle, 1, 0);
+  FDwfDigitalOutEnableSet(device_data->handle, 15, 1);
+  FDwfDigitalOutTypeSet(device_data->handle, 15, DwfDigitalOutTypeROM);
+  FDwfDigitalOutDividerSet(device_data->handle, 15, 1);
+  FDwfDigitalOutOutputSet(device_data->handle, 15, DwfDigitalOutOutputPushPull);
+  uint8_t truthTableOR = 0b00001110;
+  FDwfDigitalOutDataSet(device_data->handle, 15, &truthTableOR, 1);
+  FDwfDigitalOutIdleSet(device_data->handle, 15, 0);
+  FDwfDigitalOutConfigure(device_data->handle, true);
 
-  tools.sleep(10000);
+  tools.sleep(100000);
   device.close(device_data);
   return 0;
 }

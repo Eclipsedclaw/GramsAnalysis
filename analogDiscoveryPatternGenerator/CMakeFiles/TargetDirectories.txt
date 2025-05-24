@@ -1,3 +1,0 @@
-/home/mad/projects/Aramaki/GramsAnalysis/analogDiscoveryPatternGenerator/CMakeFiles/ad2_test.dir
-/home/mad/projects/Aramaki/GramsAnalysis/analogDiscoveryPatternGenerator/CMakeFiles/edit_cache.dir
-/home/mad/projects/Aramaki/GramsAnalysis/analogDiscoveryPatternGenerator/CMakeFiles/rebuild_cache.dir

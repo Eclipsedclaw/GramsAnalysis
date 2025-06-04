@@ -14,38 +14,72 @@ int main(void)
 
   device_data = device.open();
 
-  // OR logic
-  FDwfDigitalOutEnableSet(device_data->handle, 0, 0);
-  FDwfDigitalOutEnableSet(device_data->handle, 1, 0);
-  FDwfDigitalOutEnableSet(device_data->handle, 15, 1);
-  FDwfDigitalOutTypeSet(device_data->handle, 15, DwfDigitalOutTypeROM);
-  FDwfDigitalOutDividerSet(device_data->handle, 15, 1);
-  FDwfDigitalOutOutputSet(device_data->handle, 15, DwfDigitalOutOutputPushPull);
-  FDwfDeviceParamSet(device_data->handle, DwfParamDigitalVoltage, 5000);
-  uint8_t truthTableOR = 0b00001110;
-  FDwfDigitalOutDataSet(device_data->handle, 15, &truthTableOR, 1);
-  FDwfDigitalOutIdleSet(device_data->handle, 15, 0);
-  FDwfDigitalOutConfigure(device_data->handle, true);
+  FDwfAnalogOutReset(device_data->handle, 1);
 
-  // PPS signal 100ns pulse per second
-  wavegen.generate(device_data, 1, wavegen.function.pulse, 0, 1e3, 3.3, 0.01, 0.999, 1 / 1e3, 0, std::vector<double>());
-  FDwfAnalogOutIdleSet(device_data->handle, 0, 0);
+  // PPS
+  std::vector<std::double_t> data = {0};
+  data.resize(10000);
+  data[9] = 1;
+
+  FDwfAnalogOutNodeEnableSet(device_data->handle, 0, AnalogOutNodeCarrier, true);
+  FDwfAnalogOutNodeFunctionSet(device_data->handle, 0, AnalogOutNodeCarrier, funcCustom);
+  FDwfAnalogOutNodeFrequencySet(device_data->handle, 0, AnalogOutNodeCarrier, 1000.0);
+  FDwfAnalogOutNodeAmplitudeSet(device_data->handle, 0, AnalogOutNodeCarrier, 3.3);
+  FDwfAnalogOutNodeOffsetSet(device_data->handle, 0, AnalogOutNodeCarrier, 0.0);
+  FDwfAnalogOutNodePhaseSet(device_data->handle, 0, AnalogOutNodeCarrier, 0.0);
+  FDwfAnalogOutNodeDataSet(device_data->handle, 0, AnalogOutNodeCarrier, data.data(), data.size());
+  FDwfAnalogOutModeSet(device_data->handle, 0, DwfAnalogOutModeVoltage);
+  FDwfAnalogOutIdleSet(device_data->handle, 0, DwfAnalogOutIdleOffset);
+  FDwfAnalogOutRunSet(device_data->handle, 0, 0.001);
+  FDwfAnalogOutWaitSet(device_data->handle, 0, 0.0);
+  FDwfAnalogOutRepeatSet(device_data->handle, 0, 0);
+  FDwfAnalogOutTriggerSourceSet(device_data->handle, 0, trigsrcExternal1); // check later
+  FDwfAnalogOutTriggerSlopeSet(device_data->handle, 0, DwfTriggerSlopeRise);
+  FDwfAnalogOutRepeatTriggerSet(device_data->handle, 0, true);
   FDwfAnalogOutConfigure(device_data->handle, 0, true);
 
-  // Train signal 10 100ns pulse per 10ms
-  wavegen.generate(device_data, 2, wavegen.function.pulse, 0, 1e3, 3.3, 0.01, 0.009, 1 / 1e3, 10, std::vector<double>());
-  FDwfAnalogOutIdleSet(device_data->handle, 1, 0);
+  // PAT
+  FDwfAnalogOutNodeEnableSet(device_data->handle, 1, AnalogOutNodeCarrier, true);
+  FDwfAnalogOutNodeFunctionSet(device_data->handle, 1, AnalogOutNodeCarrier, funcCustom);
+  FDwfAnalogOutNodeFrequencySet(device_data->handle, 1, AnalogOutNodeCarrier, 1000.0);
+  FDwfAnalogOutNodeAmplitudeSet(device_data->handle, 1, AnalogOutNodeCarrier, 3.3);
+  FDwfAnalogOutNodeOffsetSet(device_data->handle, 1, AnalogOutNodeCarrier, 0.0);
+  FDwfAnalogOutNodePhaseSet(device_data->handle, 1, AnalogOutNodeCarrier, 0.0);
+  FDwfAnalogOutNodeDataSet(device_data->handle, 1, AnalogOutNodeCarrier, data.data(), data.size());
+  FDwfAnalogOutModeSet(device_data->handle, 1, DwfAnalogOutModeVoltage);
+  FDwfAnalogOutIdleSet(device_data->handle, 1, DwfAnalogOutIdleOffset);
+  FDwfAnalogOutRunSet(device_data->handle, 1, 0.01);
+  FDwfAnalogOutWaitSet(device_data->handle, 1, 0.0);
+  FDwfAnalogOutRepeatSet(device_data->handle, 1, 0);
+  FDwfAnalogOutTriggerSourceSet(device_data->handle, 1, trigsrcPC); // check later
+  FDwfAnalogOutTriggerSlopeSet(device_data->handle, 1, DwfTriggerSlopeRise);
+  FDwfAnalogOutRepeatTriggerSet(device_data->handle, 1, true);
   FDwfAnalogOutConfigure(device_data->handle, 1, true);
 
+  // OR
+  // FDwfDigitalOutEnableSet(device_data->handle, 0, 0);
+  // FDwfDigitalOutEnableSet(device_data->handle, 1, 0);
+  // FDwfDigitalOutEnableSet(device_data->handle, 15, 1);
+  // FDwfDigitalOutTypeSet(device_data->handle, 15, DwfDigitalOutTypeROM);
+  // FDwfDigitalOutDividerSet(device_data->handle, 15, 1);
+  // FDwfDigitalOutOutputSet(device_data->handle, 15, DwfDigitalOutOutputPushPull);
+  // uint8_t truthTableOR = 0b00001110;
+  // FDwfDigitalOutDataSet(device_data->handle, 15, &truthTableOR, 1);
+  // FDwfDigitalOutIdleSet(device_data->handle, 15, 0);
+  // FDwfDigitalOutConfigure(device_data->handle, true);
+
   // exit when q is pressed
-  std::cout << "Press 'q' to exit..." << std::endl;
+  std::cout << "Press 't' to trigger and 'q' to quit" << std::endl;
   std::string input;
   while (true)
   {
     std::getline(std::cin, input);
-    if (input == "q")
+    if (input == "t")
     {
-      device.close(device_data);
+      FDwfDeviceTriggerPC(device_data->handle);
+    } else if (input == "q")
+    {
+      device.close();
       return 0;
     }
   }

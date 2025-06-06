@@ -5,12 +5,15 @@
 #include <vector>
 
 using namespace wf;
+Device::Data *device_data;
 
 /* ----------------------------------------------------- */
 
+bool or_func(int iAddress);
+void configure_rom(int chan, bool (*func)(int));
+
 int main(void)
 {
-  Device::Data *device_data;
 
   device_data = device.open();
 
@@ -57,16 +60,8 @@ int main(void)
   FDwfAnalogOutConfigure(device_data->handle, 1, true);
 
   // OR
-  // FDwfDigitalOutEnableSet(device_data->handle, 0, 0);
-  // FDwfDigitalOutEnableSet(device_data->handle, 1, 0);
-  // FDwfDigitalOutEnableSet(device_data->handle, 15, 1);
-  // FDwfDigitalOutTypeSet(device_data->handle, 15, DwfDigitalOutTypeROM);
-  // FDwfDigitalOutDividerSet(device_data->handle, 15, 1);
-  // FDwfDigitalOutOutputSet(device_data->handle, 15, DwfDigitalOutOutputPushPull);
-  // uint8_t truthTableOR = 0b00001110;
-  // FDwfDigitalOutDataSet(device_data->handle, 15, &truthTableOR, 1);
-  // FDwfDigitalOutIdleSet(device_data->handle, 15, 0);
-  // FDwfDigitalOutConfigure(device_data->handle, true);
+  configure_rom(15, or_func);
+  FDwfDigitalOutConfigure(device_data->handle, 1);
 
   // exit when q is pressed
   std::cout << "Press 't' to trigger and 'q' to quit" << std::endl;
@@ -77,10 +72,43 @@ int main(void)
     if (input == "t")
     {
       FDwfDeviceTriggerPC(device_data->handle);
-    } else if (input == "q")
-    {
-      device.close();
-      return 0;
     }
   }
+}
+
+void configure_rom(int chan, bool (*func)(int))
+{
+  unsigned int customSize = 0;
+  FDwfDigitalOutDataInfo(device_data->handle, chan, &customSize);
+
+  std::cout << "Custom size: " << customSize
+       << " Address space: " << (int)log2(customSize) << std::endl;
+
+  int bufferSizeBytes = customSize / 8;
+  std::vector<uint8_t> rgbSamples(bufferSizeBytes, 0);
+
+  for (unsigned int iAddress = 0; iAddress < customSize; ++iAddress)
+  {
+    if (func(iAddress))
+    {
+      rgbSamples[iAddress / 8] |= (1 << (iAddress % 8));
+    }
+  }
+
+  for (int i = 0; i < 3; ++i)
+  {
+    FDwfDigitalOutEnableSet(device_data->handle, 0, 0);
+  }
+
+  FDwfDigitalOutEnableSet(device_data->handle, chan, 1); // enable output
+  FDwfDigitalOutTypeSet(device_data->handle, chan, DwfDigitalOutTypeROM);
+  FDwfDigitalOutDividerSet(device_data->handle, chan, 1); // set minimum delay
+  FDwfDigitalOutDataSet(device_data->handle, chan, rgbSamples.data(), customSize);
+}
+
+bool or_func(int iAddress)
+{
+  int fDio2 = (iAddress >> 2) & 1;
+  int fDio1 = (iAddress >> 1) & 1;
+  return (fDio2 == 1 || fDio1 == 1);
 }

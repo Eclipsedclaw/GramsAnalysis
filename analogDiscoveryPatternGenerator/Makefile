@@ -129,30 +129,6 @@ ad2_test/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ad2_test.dir/build.make CMakeFiles/ad2_test.dir/build
 .PHONY : ad2_test/fast
 
-AnalogDiscoveryIO.o: AnalogDiscoveryIO.cc.o
-.PHONY : AnalogDiscoveryIO.o
-
-# target to build an object file
-AnalogDiscoveryIO.cc.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ad2_test.dir/build.make CMakeFiles/ad2_test.dir/AnalogDiscoveryIO.cc.o
-.PHONY : AnalogDiscoveryIO.cc.o
-
-AnalogDiscoveryIO.i: AnalogDiscoveryIO.cc.i
-.PHONY : AnalogDiscoveryIO.i
-
-# target to preprocess a source file
-AnalogDiscoveryIO.cc.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ad2_test.dir/build.make CMakeFiles/ad2_test.dir/AnalogDiscoveryIO.cc.i
-.PHONY : AnalogDiscoveryIO.cc.i
-
-AnalogDiscoveryIO.s: AnalogDiscoveryIO.cc.s
-.PHONY : AnalogDiscoveryIO.s
-
-# target to generate assembly for a file
-AnalogDiscoveryIO.cc.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ad2_test.dir/build.make CMakeFiles/ad2_test.dir/AnalogDiscoveryIO.cc.s
-.PHONY : AnalogDiscoveryIO.cc.s
-
 main.o: main.cc.o
 .PHONY : main.o
 
@@ -186,9 +162,6 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... ad2_test"
-	@echo "... AnalogDiscoveryIO.o"
-	@echo "... AnalogDiscoveryIO.i"
-	@echo "... AnalogDiscoveryIO.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

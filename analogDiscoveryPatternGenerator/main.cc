@@ -1,4 +1,5 @@
 #include "WF_SDK/WF_SDK.h"
+#include "digilent/waveforms/dwf.h"
 #include <iostream>
 #include <string>
 #include <fstream>

@@ -35,3 +35,15 @@
 
 # clang-tidy output
 /clang-tidy-fixes.patch
+
+ad2_test
+# CMake cache files
+/CMakeCache.txt
+# CMake files
+/CMakeFiles/
+# CMake user files
+/CMakeUserPresets.json
+# CMake install files
+/CMakeInstall.cmake
+# CMake export files
+cmake_install.cmake

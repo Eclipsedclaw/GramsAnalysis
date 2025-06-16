@@ -19,7 +19,7 @@ class Event:
         self.waveform_data_2D = {} # needs to be initialized
 
 
-    def load_basics(self, event_num, rootfilename, treename):
+    def load_basics(self, event_num, rootfilename, treename="test_tree"):
         """load_basics(self, event_num, rootfilename, treename)
         
         Provide the name of the ROOT file and the TTree name and this function will extract all the basic information of the run as below:
@@ -43,7 +43,7 @@ class Event:
         infile.Close()                              # Close the ROOT file!!!
 
 
-    def load_actives(self, event_num, rootfilename, treename):
+    def load_actives(self, event_num, rootfilename, treename="test_tree"):
         """load_actives(self, event_num, rootfilename, treename)
 
         Run load_basics() first for this function to initialize these values properly.
@@ -69,7 +69,7 @@ class Event:
         #print(f"Channel dictionary: {self.channel_dict}")
 
 
-    def load_data(self, event_num, rootfilename, treename):
+    def load_data(self, event_num, rootfilename, treename="test_tree"):
         """load_data(self, event_num, rootfilename, treename)
 
         Loads data for a given event_num from the ROOT TTree into a dictionary. Event_num is indexed from 0.

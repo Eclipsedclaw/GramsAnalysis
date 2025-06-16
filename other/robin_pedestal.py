@@ -54,7 +54,7 @@ def GRAMS_Pedestal(file_address):
     print("Reading root file..")
 
     channel_data = {}  # Temporary storage for channel data
-    channel_means = {}   # Temporary storage for fluctuation_rms
+    channel_means = {}   
 
     # This loads data into the channel_data dictionary
     for acq in tqdm(range(num_events)):
@@ -73,7 +73,7 @@ def GRAMS_Pedestal(file_address):
                 channel_data[real_ch_number] = event_obj.waveform_data_2D[real_ch_number]
                 channel_means[real_ch_number] = np.average(event_obj.waveform_data_2D[real_ch_number])
 
-    channel_rms = {}
+    channel_rms = {} # Temporary storage for fluctuation_rms
 
     print("Loading rms values...")
 

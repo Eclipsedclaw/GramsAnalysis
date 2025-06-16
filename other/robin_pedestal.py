@@ -12,6 +12,8 @@ import pandas as pd
 import os
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import PathCompleter
+from Event_class import Event
+from tqdm import tqdm # For a progress bar!
 
 # Create a PathCompleter for file path tab-completion
 completer = PathCompleter()
@@ -35,48 +37,53 @@ def GRAMS_RMS(baseline_array):
     return np.sqrt(np.mean(baseline_array**2))
 
 
-def GRAMS_Pedestal(file_address, num_channels):
+def GRAMS_Pedestal(file_address):
+
+    event_obj = Event()
+
     file = ROOT.TFile(file_address)
 
-    mytree = file.Get("tree")
+    treename = "test_tree"
 
-    branches = mytree.GetListOfBranches()
+    mytree = file.Get(treename)
 
-    for branch in branches:
-        print(branch.GetName())
-
-    mytree.SetBranchStatus("waveform_samples", 1)
-    raw_wf = array('f', [0]*(len(mytree.waveform_samples)-1))
-    mytree.SetBranchAddress("waveform_samples", raw_wf)
-
-    num_events = int(mytree.GetEntries()/num_channels)
-
+    num_events = mytree.GetEntries()
+    
     fluctuation_rms = []
     df = pd.DataFrame()
     print("Reading root file..")
 
     channel_data = {}  # Temporary storage for channel data
-    channel_rms = {}   # Temporary storage for fluctuation_rms
-    for i in range(num_channels):
-        wfarray = []
-        event_mean = []
-        for j in range(num_events):
-            mytree.GetEntry(i * num_events + j)
-            wfarray.extend(raw_wf)
-            column_name = f"Ch{mytree.channel}"  # Retain the original channel value in the column name
-            baseline_mean = np.average(raw_wf)
-            event_mean.append(baseline_mean)
+    channel_means = {}   # Temporary storage for fluctuation_rms
+
+    # This loads data into the channel_data dictionary
+    for acq in tqdm(range(num_events)):
+        #print(f"Working on event {acq}...")
+        event_obj.load_basics(acq, file_address, treename)  # Loads basic info like event_num, timestamp etc
+        event_obj.load_actives(acq, file_address, treename) # Loads active channel map
+        event_obj.load_data(acq, file_address, treename)    # Loads waveform data into a dictionary {2:[...], 3:[...], 17:[...], ..., 56:[...]} keys are active channel number
+
+        for ch in range(event_obj.num_channels[0]):
+            real_ch_number = event_obj.actives[ch]
+            try:
+                np.append(channel_data[real_ch_number], event_obj.waveform_data_2D[real_ch_number])
+                # like extend([data already in channel data for ch x], [data newly read for ch x])
+                np.append(channel_means[real_ch_number], np.average(event_obj.waveform_data_2D[real_ch_number]))
+            except KeyError:
+                channel_data[real_ch_number] = event_obj.waveform_data_2D[real_ch_number]
+                channel_means[real_ch_number] = np.average(event_obj.waveform_data_2D[real_ch_number])
+
+    channel_rms = {}
+
+    print("Loading rms values...")
+
+    for ch in channel_means:
         try:
-            rms_value = stdev(event_mean) / np.sqrt(len(event_mean))
+            channel_rms[ch] = stdev(channel_means[ch])/np.sqrt(len(channel_means))
         except:
-            rms_value = 0
-            print("fluctuation got a wired result")
-        print(column_name)
-
-        # Store data and fluctuation_rms using the channel as the key
-        channel_data[mytree.channel] = wfarray
-        channel_rms[mytree.channel] = rms_value
-
+            channel_rms[ch] = 0
+            print("fluctuation got a weird result")
+    
     # Add columns to the DataFrame in ascending order of channel numbers
     fluctuation_rms = []  # Reset fluctuation_rms to follow the sorted order
     for channel in sorted(channel_data.keys()):
@@ -85,7 +92,7 @@ def GRAMS_Pedestal(file_address, num_channels):
         fluctuation_rms.append(channel_rms[channel])  # Append rms in the same order
 
     print(df.head())
-    return df, fluctuation_rms
+    return df, fluctuation_rms, event_obj.num_channels[0]
 
 
 def baseline_correction(baseline_array):
@@ -119,17 +126,18 @@ save_name = os.path.join(save_path, pedestal_name)
 print("Save output pedestal plot to: ", save_name)
 
 # Ask the user to input the number of channels
-num_channels = int(input("Please enter the number of channels: "))
+# num_channels = int(input("Please enter the number of channels: ")) # no need for this with event based tree
 
 print(f"Absolute file path: {file_path}")
 print(f"Absolute save path: {save_path}")
-print(f"Number of channels: {num_channels}")
+#print(f"Number of channels: {num_channels}")
 
 
 RMS_data = []
-data = GRAMS_Pedestal(file_address=file_path, num_channels=num_channels)
+data = GRAMS_Pedestal(file_address=file_path)
 data_wf = data[0]
 RMS_errors = data[1]
+num_channels = data[2]  # so that your script below can work
 
 for i in range(num_channels):
     corrected_data = baseline_correction(data_wf.iloc[:,i])

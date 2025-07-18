@@ -82,8 +82,17 @@ if(entries%num_channels != 0): print("error in number of channels or traces")
 print("total entries = ",entries)
 print("number of traces = ",NbTraces)
 
-# TODO: make updates to read the data to determine the actually points
-time = [n*0.008 for n in range(37500)]
+# Read the first entry to determine the number of points
+tree.GetEntry(0)
+# Assuming the waveform data is stored in a branch called 'waveform' or similar
+# You'll need to check the actual branch name from tree.Print() output
+waveform_branch_name = "waveform_samples"  # Change this to your actual branch name
+waveform = getattr(tree, waveform_branch_name)
+num_points = len(waveform)
+print(f"Number of points per waveform: {num_points}")
+
+# Update the time array based on the actual number of points
+time = [n*0.008 for n in range(num_points)]
 
 
 repeat = NbTraces

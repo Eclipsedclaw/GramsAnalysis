@@ -17,6 +17,7 @@ from scipy.signal import butter, lfilter
 from scipy.ndimage import gaussian_filter1d
 from scipy.stats import norm
 import pandas as pd
+import csv
 
 def GRAMS_shaper_trial_1(raw_waveform, filter_order, critical_frequency, gaussian_sigma, gain, shaping_time=5, sampling_rate=125):
     b, a = butter(filter_order, critical_frequency, 'high')
@@ -138,7 +139,7 @@ repeat = NbTraces
 # First, load your channel mapping with flags
 channel_mapping = {} 
 # Read the CSV file (assuming it's named 'channel_mapping.csv')
-import csv
+
 with open('channel_mapping.csv', 'r') as f:
     reader = csv.DictReader(f)
     for row in reader:
@@ -147,7 +148,7 @@ with open('channel_mapping.csv', 'r') as f:
             'flag': row['flag'],
             'comment': row['comment']
         }
-    
+
 # Function to check if a channel is valid (not NULL/nan)
 def is_valid_channel(channel_name):
     if channel_name not in channel_mapping:
@@ -157,7 +158,7 @@ def is_valid_channel(channel_name):
 
 
 for n in tqdm(range(repeat)):
-    interesting_event = False
+    interesting_event = 0
     
     # Create figure with adjusted subplot heights
     fig = plt.figure(figsize=(12, 10))
@@ -197,7 +198,7 @@ for n in tqdm(range(repeat)):
             #print("rms is:", rms)
             #print("max is:",np.max(waveform_samples))
             if np.max(waveform_samples) > 5 * rms:
-                interesting_event = True
+                interesting_event = interesting_event + 1
 
         # Skip NULL labels
         if label == 'NULL':
@@ -232,8 +233,8 @@ for n in tqdm(range(repeat)):
     plt.tight_layout()
     
     # Save figure based on interesting_event status
-    if interesting_event:
-        plt.savefig(full_save_path+'/***'+str(n).zfill(4)+"_"+str(event_id).zfill(4)+".png")
+    if interesting_event>0:
+        plt.savefig(full_save_path+'/***_'+str(interesting_event)+'_'+str(n).zfill(4)+"_"+str(event_id).zfill(4)+".png")
     else:
         plt.savefig(full_save_path+'/'+str(n).zfill(4)+"_"+str(event_id).zfill(4)+".png")
     

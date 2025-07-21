@@ -134,20 +134,40 @@ print(f"Number of points per waveform: {num_points}")
 time = [n*0.008 for n in range(num_points)]
 
 
-repeat = NbTraces
-
-# First, load your channel mapping with flags
-channel_mapping = {} 
-# Read the CSV file (assuming it's named 'channel_mapping.csv')
-
-with open('channel_mapping.csv', 'r') as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        channel_mapping[row['Channel']] = {
-            'label': row['Label'],
+def load_channel_mapping(sheeturl, sheet_id='0'):
+    url = sheeturl
+    df = pd.read_csv(url)
+    
+    channel_mapping = {}
+    for _, row in df.iterrows():
+        channel_num = row['channel number']
+        channel_mapping[channel_num] = {
+            'label': row['label'],
             'flag': row['flag'],
             'comment': row['comment']
         }
+    return channel_mapping
+
+def build_sheet_url(doc_id, sheet_id):
+    return f'https://docs.google.com/spreadsheets/d/{doc_id}/export?format=csv&gid={sheet_id}'
+
+def write_df_to_local(df, file_path):
+    df.to_csv(file_path)
+# Ask the user to input the mapping file
+channel_mapping_path = prompt('Please enter the mapping google sheet url (default with JC mapping google sheet): ', completer=completer)
+# First, load your channel mapping with flags
+channel_mapping = {} 
+
+if(channel_mapping_path == ''):
+    channel_mapping_path = 'https://docs.google.com/spreadsheets/d/1PFdLic8A5gqCuOfUtG62JrcyVAmm5fGXz86ElL5RMYo/export?format=csv&gid=0'
+channel_mapping = load_channel_mapping(channel_mapping_path)
+
+# Debug: Print the first 5 entries
+print("Channel Mapping:")
+for chan, info in list(channel_mapping.items())[:]:
+    print(f"{chan}: {info}")
+
+
 
 # Function to check if a channel is valid (not NULL/nan)
 def is_valid_channel(channel_name):
@@ -156,88 +176,142 @@ def is_valid_channel(channel_name):
     channel_data = channel_mapping[channel_name]
     return not (pd.isna(channel_data['label']) and pd.isna(channel_data['extra']))
 
+repeat = NbTraces
 
 for n in tqdm(range(repeat)):
     interesting_event = 0
     
-    # Create figure with adjusted subplot heights
+    # Create a 2x2 grid
     fig = plt.figure(figsize=(12, 10))
-    gs = plt.GridSpec(2, 1, height_ratios=[1, 3])  # 1:3 height ratio (SiPM:CSP)
+    gs = plt.GridSpec(2, 2, height_ratios=[1, 3], width_ratios=[1, 1])
     
-    ax_sipm = plt.subplot(gs[0])
-    ax_csp = plt.subplot(gs[1], sharex=ax_sipm)  # Share x-axis
+    # Define subplots
+    ax_sipm_vis = plt.subplot(gs[0, 0])  # Top-left (SiPM_VIS)
+    ax_sipm_vuv = plt.subplot(gs[0, 1])  # Top-right (SiPM_VUV)
+    ax_csp_x = plt.subplot(gs[1, 0])     # Bottom-left (CSP_x)
+    ax_csp_y = plt.subplot(gs[1, 1])     # Bottom-right (CSP_y)
 
+    # Share x-axis between CSP plots (optional)
+    ax_csp_y.sharex(ax_csp_x)
     
+    # Move SIPM_VUV and CSP_y y-axis to the right
+    ax_sipm_vuv.yaxis.tick_right()
+    ax_sipm_vuv.yaxis.set_label_position("right")
+    
+    ax_csp_y.yaxis.tick_right()
+    ax_csp_y.yaxis.set_label_position("right")
+    
+    offset_value_x = 0
+    offset_value_y = 0
+    offset_bin = 25
+
     for x in range(num_channels):
-        tree.GetEntry(NbTraces*x+n)
-        if(x != 0 and event_id != tree.event_id):
+        tree.GetEntry(NbTraces * x + n)
+
+        # Check event consistency
+        if x != 0 and event_id != tree.event_id:
             print("different event id")
         event_id = tree.event_id
         channel = tree.channel
-        if(x != 0 and timestamp != tree.timestamp):
+        
+        if x != 0 and timestamp != tree.timestamp:
             print("different timestamp")
         timestamp = tree.timestamp
+        
         resolution = tree.resolution
         numberOfSamples = tree.numberOfSamples
         waveform_samples = np.array(tree.waveform_samples)
-
-        base_label = f"Ch{channel}"
+        
+        # Baseline correction
+        waveform_samples = waveform_samples - np.mean(waveform_samples[:1500])
+        
+        base_label = f"ch{channel}"
         chan_info = channel_mapping.get(base_label, {})
         label = chan_info.get('label', base_label)
         flag = chan_info.get('flag', '')
 
-        waveform_samples = waveform_samples - np.mean(waveform_samples[:1500])
-
-        # only apply filter to charge channels
-        if flag == "CSP" :
-            waveform_samples = GRAMS_shaper_trial_1(waveform_samples, filter_order=1, 
-                                                    critical_frequency=0.001, gaussian_sigma=250,
-                                                    shaping_time=5, gain=4, sampling_rate=125)
+        # Apply filter to CSP channels
+        if flag.startswith("CSP"):
+            waveform_samples = GRAMS_shaper_trial_1(
+                waveform_samples,
+                filter_order=1,
+                critical_frequency=0.001,
+                gaussian_sigma=250,
+                shaping_time=5,
+                gain=4,
+                sampling_rate=125
+            )
             
-            rms = np.sqrt(np.mean(waveform_samples[:-int(num_points/3)]**2))
-            #print("rms is:", rms)
-            #print("max is:",np.max(waveform_samples))
+            rms = np.sqrt(np.mean(waveform_samples[:-int(num_points / 3)] ** 2))
             if np.max(waveform_samples) > 5 * rms:
-                interesting_event = interesting_event + 1
-
+                interesting_event += 1
+            
+        
         # Skip NULL labels
         if label == 'NULL':
             continue
+        
+        if flag == 'SIPM_VIS':
+            line = ax_sipm_vis.plot(time, waveform_samples, label=label)[0]  # Note [0] here
+
+        elif flag == 'SIPM_VUV':
+            line = ax_sipm_vuv.plot(time, waveform_samples, label=label)[0]
+
+
+        elif flag == 'CSP_X':
+            waveform_samples = [x + offset_value_x for x in waveform_samples]
+            line, = ax_csp_x.plot(time, waveform_samples)
             
-        # Plot based on flag
-        if flag == 'SiPM':
-            ax_sipm.plot(time, waveform_samples, label=label)
-        elif flag == 'CSP':
-            ax_csp.plot(time, waveform_samples, label=label)
-        else:
-            # Plot unclassified channels on CSP plot (or create third subplot if needed)
-            ax_csp.plot(time, waveform_samples, label=label)
+            # Set text color to match line color
+            ax_csp_x.text(time[0] + 120, offset_value_x + 5, label,
+                        va='center', ha='left', fontsize=8,
+                        color=line.get_color())  # <-- This gets the line's auto color
+            
+            offset_value_x += offset_bin
+
+        elif flag == 'CSP_Y':
+            waveform_samples = [x + offset_value_y for x in waveform_samples]
+            line, = ax_csp_y.plot(time, waveform_samples)
+            
+            ax_csp_y.text(time[0] + 120, offset_value_y + 5, label,
+                        va='center', ha='left', fontsize=8,
+                        color=line.get_color())  # <-- Same here
+            
+            offset_value_y += offset_bin
+
+        # Set y-axis limits to accommodate all offsets
+        #ax_csp_x.set_ylim(-offset_bin, offset_value_x + offset_bin)
+        #ax_csp_y.set_ylim(-offset_bin, offset_value_y + offset_bin)
     
-    # Configure SiPM plot (top)
-    ax_sipm.set_title(f'SiPM Channels - Event ID {event_id}')
-    ax_sipm.set_ylabel('Output [mV]')
-    ax_sipm.set_xlim(0, 300)
-    ax_sipm.set_ylim(-50, 10)
-    ax_sipm.legend(ncol=2, loc='lower right', fontsize=10)
-    #ax_sipm.grid(True)
+    # Configure SiPM plots (top row)
+    for ax_sipm in [ax_sipm_vis, ax_sipm_vuv]:
+        ax_sipm.set_ylabel('Output [mV]')
+        ax_sipm.set_xlim(0, 150)
+        ax_sipm.set_ylim(-50, 10)
+        ax_sipm.legend(ncol=1, loc='lower right', fontsize=10)
     
-    # Configure CSP plot (bottom)
-    ax_csp.set_title('CSP Channels')
-    ax_csp.set_xlabel('Time [μs]')
-    ax_csp.set_ylabel('Output [mV]')
-    ax_csp.set_xlim(0, 300)
-    ax_csp.set_ylim(-300, 300)
-    ax_csp.legend(ncol=6, loc='lower right', fontsize=10)
-    #ax_csp.grid(True)
+    ax_sipm_vis.set_title('SiPM (VIS)')
+    ax_sipm_vuv.set_title('SiPM (VUV)')
+    
+    # Configure CSP plots (bottom row)
+    for ax_csp in [ax_csp_x, ax_csp_y]:
+        ax_csp.set_xlabel('Time [μs]')
+        ax_csp.set_ylabel('Output [mV]')
+        ax_csp.set_xlim(0, 150)
+        ax_csp.set_ylim(-50, 550)
+        #ax_csp.legend(ncol=1, loc='lower right', fontsize=10)
+    
+    ax_csp_x.set_title('CSP (X-axis)')
+    ax_csp_y.set_title('CSP (Y-axis)')
     
     plt.tight_layout()
     
-    # Save figure based on interesting_event status
-    if interesting_event>0:
-        plt.savefig(full_save_path+'/***_'+str(interesting_event)+'_'+str(n).zfill(4)+"_"+str(event_id).zfill(4)+".png")
+    # Save figure
+    if interesting_event > 0:
+        plt.savefig(f"{full_save_path}/***_{interesting_event}_{n:04d}_{event_id:04d}.png")
     else:
-        plt.savefig(full_save_path+'/'+str(n).zfill(4)+"_"+str(event_id).zfill(4)+".png")
+        plt.savefig(f"{full_save_path}/{n:04d}_{event_id:04d}.png")
     
-    plt.close(fig)  # Use plt.close() instead of clf() when working with figures
+    plt.close(fig)
 
 print("Done")

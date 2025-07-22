@@ -18,6 +18,7 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import norm
 import pandas as pd
 import csv
+import re
 
 def GRAMS_shaper_trial_1(raw_waveform, filter_order, critical_frequency, gaussian_sigma, gain, shaping_time=5, sampling_rate=125):
     b, a = butter(filter_order, critical_frequency, 'high')
@@ -142,7 +143,7 @@ def load_channel_mapping(sheeturl, sheet_id='0'):
         }
     return channel_mapping
 
-def build_sheet_url(doc_id, sheet_id):
+def build_sheet_url(doc_id, sheet_id=0):
     return f'https://docs.google.com/spreadsheets/d/{doc_id}/export?format=csv&gid={sheet_id}'
 
 def write_df_to_local(df, file_path):
@@ -152,8 +153,17 @@ channel_mapping_path = prompt('Please enter the mapping google sheet url (defaul
 # First, load your channel mapping with flags
 channel_mapping = {} 
 
+# Extract document ID using regex
+match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", channel_mapping_path)
+if match:
+    doc_id = match.group(1)
+    print(doc_id)  # Output: 1cDn9RDIA36rct33YufcczkTPW806pLpGoDwF8rJNewM
+else:
+    print("No document ID found in URL")
+
 if(channel_mapping_path == ''):
     channel_mapping_path = 'https://docs.google.com/spreadsheets/d/1PFdLic8A5gqCuOfUtG62JrcyVAmm5fGXz86ElL5RMYo/export?format=csv&gid=0'
+channel_mapping_path = build_sheet_url(doc_id)
 channel_mapping = load_channel_mapping(channel_mapping_path)
 labels = {ch: info['label'] for ch, info in channel_mapping.items()}
 

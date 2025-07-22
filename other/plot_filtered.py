@@ -1,7 +1,7 @@
 """
 Plot all waveform from CAEN generated root file
 author: Jiancheng Zeng
-Date: Feb 3, 2024
+Date: July 20, 2025
 """
 
 import numpy as np
@@ -66,7 +66,7 @@ file_path = os.path.abspath(file_path)
 
 # Extract just the file name from the file path
 file_name = os.path.basename(file_path)
-pedestal_name = "pedestal_"+os.path.splitext(file_name)[0]+".png"
+
 # Ask the user to input the save path for the plot
 save_path = prompt('Please enter the path where you want to save the plot(default same as root file directory): ', completer=completer)
 if(save_path == ''):
@@ -85,35 +85,29 @@ if not os.path.exists(full_save_path):
 
 print("Save raw waveform plot to: ", full_save_path)
 
-# Ask the user to input the number of channels
-num_channels = int(input("Please enter the number of channels: "))
-
-print(f"Absolute file path: {file_path}")
-print(f"Absolute save path: {save_path}")
-print(f"Number of channels: {num_channels}")
-
-"""
-args = sys.argv
-
-if len(sys.argv) == 5:
-    print("file directory = ", args[1])
-    filename = args[1]+args[2]
-    print("file name = ", filename)
-    print("number of channels = ", args[3])
-    num_channels = int(args[3])
-    EntryID = args[4]
-else: print("*** incorrect inout arguments ***")
-"""
 
 fig = plt.figure(1)
 fig.set_size_inches(8, 6)
 
-# num_channels = 34
-# NbTraces = 501
-# rootfile = ROOT.TFile("./LArComboFullDrift_EmmaTile_DirtyLAr8_90Deg_34chans_05292024_dig2-usb22575_20240529110213-10.root")
 rootfile = ROOT.TFile(file_path)
 tree = rootfile.Get("tree")
 tree.Print()
+
+tree.SetBranchStatus("*", 0)  # Disable all branches
+tree.SetBranchStatus("channel", 1)  # Enable only channel branch to find how many active CAEN channels
+unique_channel = set()
+for i in range(tree.GetEntries()):
+    tree.GetEntry(i)
+    unique_channel.add(tree.channel)
+    if len(unique_channel) >= 200:  # Early exit
+        break
+num_channels = len(unique_channel)
+print(f"Absolute file path: {file_path}")
+print(f"Absolute save path: {save_path}")
+print(f"Number of channels: {num_channels}")
+print(f"CAEN channel list: {unique_channel}")
+
+tree.SetBranchStatus("channel", 1)
 
 entries = tree.GetEntries()
 NbTraces = int(entries/num_channels)
@@ -121,10 +115,10 @@ if(entries%num_channels != 0): print("error in number of channels or traces")
 print("total entries = ",entries)
 print("number of traces = ",NbTraces)
 
+tree.SetBranchStatus("*", 1)  # Enable all branches
+
 # Read the first entry to determine the number of points
 tree.GetEntry(0)
-# Assuming the waveform data is stored in a branch called 'waveform' or similar
-# You'll need to check the actual branch name from tree.Print() output
 waveform_branch_name = "waveform_samples"  # Change this to your actual branch name
 waveform = getattr(tree, waveform_branch_name)
 num_points = len(waveform)
@@ -161,20 +155,31 @@ channel_mapping = {}
 if(channel_mapping_path == ''):
     channel_mapping_path = 'https://docs.google.com/spreadsheets/d/1PFdLic8A5gqCuOfUtG62JrcyVAmm5fGXz86ElL5RMYo/export?format=csv&gid=0'
 channel_mapping = load_channel_mapping(channel_mapping_path)
+labels = {ch: info['label'] for ch, info in channel_mapping.items()}
 
-# Debug: Print the first 5 entries
+# 1. Get ONLY channels that exist in labels
+valid_channels = [ch for ch in [f'ch{i}' for i in unique_channel] if ch in labels]
+
+# 2. Initialize DataFrame with only labeled channels
+interesting_stats = pd.DataFrame(
+    index=['number of interesting events', 'peak sum'],
+    columns=valid_channels,  # Only channels with labels
+    data=[[0]*len(valid_channels)]  # Initialize with zeros
+)
+
+# 3. Create label row (only for valid channels)
+label_row = pd.DataFrame(
+    {ch: [labels[ch]] for ch in valid_channels},
+    index=['label']
+)
+
+# 4. Combine with proper alignment
+CSP_stats = pd.concat([label_row, interesting_stats])
+
 print("Channel Mapping:")
 for chan, info in list(channel_mapping.items())[:]:
     print(f"{chan}: {info}")
 
-
-
-# Function to check if a channel is valid (not NULL/nan)
-def is_valid_channel(channel_name):
-    if channel_name not in channel_mapping:
-        return False
-    channel_data = channel_mapping[channel_name]
-    return not (pd.isna(channel_data['label']) and pd.isna(channel_data['extra']))
 
 repeat = NbTraces
 
@@ -245,8 +250,9 @@ for n in tqdm(range(repeat)):
             rms = np.sqrt(np.mean(waveform_samples[:-int(num_points / 3)] ** 2))
             if np.max(waveform_samples) > 5 * rms:
                 interesting_event += 1
-            
-        
+                CSP_stats.at['number of interesting events', base_label] = CSP_stats.at['number of interesting events', base_label] + 1 # stats for CSP channels
+                CSP_stats.at['peak sum', base_label] = CSP_stats.at['peak sum', base_label] + max(waveform_samples)
+
         # Skip NULL labels
         if label == 'NULL':
             continue
@@ -304,6 +310,8 @@ for n in tqdm(range(repeat)):
     ax_csp_x.set_title('CSP (X-axis)')
     ax_csp_y.set_title('CSP (Y-axis)')
     
+    fig.suptitle(f"{file_name}\nEvent {n:04d}_{event_id:04d}")
+
     plt.tight_layout()
     
     # Save figure
@@ -313,5 +321,14 @@ for n in tqdm(range(repeat)):
         plt.savefig(f"{full_save_path}/{n:04d}_{event_id:04d}.png")
     
     plt.close(fig)
+
+CSP_stats.to_csv(
+    os.path.join(save_path, "CSP_interesting_events_stats.csv"),
+    index=True,          # Keep row labels (recommended for your format)
+    header=True,         # Keep column headers
+    na_rep='NA',         # How to represent missing values
+    float_format='%.2f'  # Format for numbers (2 decimal places)
+)
+
 
 print("Done")

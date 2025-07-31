@@ -158,12 +158,13 @@ match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", channel_mapping_path)
 if match:
     doc_id = match.group(1)
     print(doc_id)  # Output: 1cDn9RDIA36rct33YufcczkTPW806pLpGoDwF8rJNewM
+    channel_mapping_path = build_sheet_url(doc_id)
 else:
     print("No document ID found in URL")
 
 if(channel_mapping_path == ''):
     channel_mapping_path = 'https://docs.google.com/spreadsheets/d/1PFdLic8A5gqCuOfUtG62JrcyVAmm5fGXz86ElL5RMYo/export?format=csv&gid=0'
-channel_mapping_path = build_sheet_url(doc_id)
+
 channel_mapping = load_channel_mapping(channel_mapping_path)
 labels = {ch: info['label'] for ch, info in channel_mapping.items()}
 

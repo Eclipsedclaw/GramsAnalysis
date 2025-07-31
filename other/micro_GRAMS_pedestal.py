@@ -35,16 +35,8 @@ def GRAMS_RMS(baseline_array):
     return np.sqrt(np.mean(baseline_array**2))
 
 
-def GRAMS_Pedestal(file_address, num_channels):
-    file = ROOT.TFile(file_address)
-
-    mytree = file.Get("tree")
-
-    branches = mytree.GetListOfBranches()
-
-    for branch in branches:
-        print(branch.GetName())
-
+def GRAMS_Pedestal(getTree):
+    mytree = getTree
     mytree.SetBranchStatus("waveform_samples", 1)
     raw_wf = array('f', [0]*(len(mytree.waveform_samples)-1))
     mytree.SetBranchAddress("waveform_samples", raw_wf)
@@ -118,16 +110,33 @@ save_path = os.path.abspath(save_path)
 save_name = os.path.join(save_path, pedestal_name)
 print("Save output pedestal plot to: ", save_name)
 
-# Ask the user to input the number of channels
-num_channels = int(input("Please enter the number of channels: "))
+RMS_data = []
+file = ROOT.TFile(file_path)
 
+mytree = file.Get("tree")
+
+branches = mytree.GetListOfBranches()
+
+for branch in branches:
+    print(branch.GetName())
+
+mytree.SetBranchStatus("*", 0)  # Disable all branches
+mytree.SetBranchStatus("channel", 1)  # Enable only channel branch to find how many active CAEN channels
+unique_channel = set()
+for i in range(mytree.GetEntries()):
+    mytree.GetEntry(i)
+    unique_channel.add(mytree.channel)
+    if len(unique_channel) >= 200:  # Early exit
+        break
+num_channels = len(unique_channel)
 print(f"Absolute file path: {file_path}")
 print(f"Absolute save path: {save_path}")
 print(f"Number of channels: {num_channels}")
+print(f"CAEN channel list: {unique_channel}")
 
+mytree.SetBranchStatus("channel", 1)
 
-RMS_data = []
-data = GRAMS_Pedestal(file_address=file_path, num_channels=num_channels)
+data = GRAMS_Pedestal(getTree=mytree)
 data_wf = data[0]
 RMS_errors = data[1]
 
@@ -181,7 +190,7 @@ plt.xlabel('channel number')  # Label for x-axis
 plt.ylabel('RMS/mV')          # Label for y-axis
 
 # Set plot title using the extracted file name
-plt.title(f'RMS performance for all CSP channels - {file_name}', fontsize=14)
+plt.title(f'RMS - {file_name}', fontsize=14)
 plt.grid(True, linestyle='--')  # Add grid lines to the plot
 
 

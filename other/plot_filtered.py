@@ -244,8 +244,8 @@ for n in tqdm(range(repeat)):
         base_label = f"ch{channel}"
         chan_info = channel_mapping.get(base_label, {})
         label = chan_info.get('label', base_label)
-        flag = chan_info.get('flag', '')
-
+        flag = str(chan_info.get('flag', ''))
+        
         # Apply filter to CSP channels
         if flag.startswith("CSP"):
             waveform_samples = GRAMS_shaper_trial_1(
@@ -264,17 +264,17 @@ for n in tqdm(range(repeat)):
                 CSP_stats.at['number of interesting events', base_label] = CSP_stats.at['number of interesting events', base_label] + 1 # stats for CSP channels
                 CSP_stats.at['peak sum', base_label] = CSP_stats.at['peak sum', base_label] + max(waveform_samples)
 
-        # Skip NULL labels
+        # Skip empty channels
         if label == 'NULL':
             continue
         
         if flag == 'SIPM_VIS':
-            line = ax_sipm_vis.plot(time, waveform_samples, label=label)[0]  # Note [0] here
+            line = ax_sipm_vis.plot(time, waveform_samples, label=label)[0]
 
         elif flag == 'SIPM_VUV':
             line = ax_sipm_vuv.plot(time, waveform_samples, label=label)[0]
 
-
+        # TODO: modify the offset_bin function to make mapping correct
         elif flag == 'CSP_X':
             waveform_samples = [x + offset_value_x for x in waveform_samples]
             line, = ax_csp_x.plot(time, waveform_samples)

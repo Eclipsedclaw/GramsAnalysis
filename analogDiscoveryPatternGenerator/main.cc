@@ -55,7 +55,7 @@ int main(void)
   FDwfAnalogOutRunSet(device_data->handle, 1, 0.01);
   FDwfAnalogOutWaitSet(device_data->handle, 1, 0.0);
   FDwfAnalogOutRepeatSet(device_data->handle, 1, 0);
-  FDwfAnalogOutTriggerSourceSet(device_data->handle, 1, trigsrcPC); // check later
+  FDwfAnalogOutTriggerSourceSet(device_data->handle, 1, trigsrcPC);
   FDwfAnalogOutTriggerSlopeSet(device_data->handle, 1, DwfTriggerSlopeRise);
   FDwfAnalogOutRepeatTriggerSet(device_data->handle, 1, true);
   FDwfAnalogOutConfigure(device_data->handle, 1, true);
@@ -74,7 +74,13 @@ int main(void)
     {
       FDwfDeviceTriggerPC(device_data->handle);
     }
+    else if (input == "q")
+    {
+      break;
+    }
   }
+  device.close(device_data);
+  return 0;
 }
 
 void configure_rom(int chan, bool (*func)(int))
@@ -83,7 +89,7 @@ void configure_rom(int chan, bool (*func)(int))
   FDwfDigitalOutDataInfo(device_data->handle, chan, &customSize);
 
   std::cout << "Custom size: " << customSize
-       << " Address space: " << (int)log2(customSize) << std::endl;
+            << " Address space: " << (int)log2(customSize) << std::endl;
 
   int bufferSizeBytes = customSize / 8;
   std::vector<uint8_t> rgbSamples(bufferSizeBytes, 0);

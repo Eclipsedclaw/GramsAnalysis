@@ -4,6 +4,8 @@
 #include <TF1.h>
 #include <TStyle.h>
 #include <TCanvas.h>
+#include <cmath>
+
 Double_t ff1(Double_t *x, Double_t *par){
 
   double t=x[0];

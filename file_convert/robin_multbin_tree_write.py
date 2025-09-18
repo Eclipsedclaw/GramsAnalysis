@@ -9,17 +9,24 @@ from time import time
 
 completer = PathCompleter()
 
-bin_dir_input = prompt("Please enter the absolute path to the directory that holds the binary files: ", completer=completer)
-print(f"You selected: {bin_dir_input}")
+file_path = prompt("Please enter the absolute path to the binary file directory: ", completer=completer)
+print(f"You selected: {file_path}")
 
-bin_dir_path = Path(bin_dir_input)
+bin_dir_path = Path(file_path)
 
 save_path = prompt("Please enter the absolute path where you would like the root file to be saved: ", completer=completer)
-print(f"You selected: {save_path}")
-tree_name = str(input("Enter the ROOT file name: "))
+root_file_name = str(input("Please enter a file name for the new root file: "))
 
-save_name = os.path.join(save_path, tree_name+".root")
-print(save_name)
+save_name = os.path.join(save_path, root_file_name+".root")
+
+if save_path == "":
+    save_path_base = os.path.dirname(file_path)
+    file_name = os.path.basename(file_path)
+    save_path = os.path.join(save_path_base, file_name)
+    save_name = os.path.join(save_path, os.path.splitext(file_name)[0]+".root")
+    print(f"save name is {save_name}")
+
+print(f"You are saving to this path: {save_path}.")
 
 start_time = time() # in seconds
 
@@ -39,7 +46,7 @@ one_sample_in_ns = array("i", [0])
 channels = array("i", [0])
 num_channels, num_samples = None, None
 
-print(f"Preparing tree {tree_name} and branches")
+print(f"Preparing tree {root_file_name} and branches")
 
 # reading only first event from first file for prep
 with open(data_file_list[0], "rb") as prep_file:

@@ -10,18 +10,15 @@ completer = PathCompleter()
 file_path = prompt("Please enter the absolute path to the binary file: ", completer=completer)
 print(f"You selected: {file_path}")
 
+save_path = prompt("Please enter the absolute path where you would like the root file to be saved: ", completer=completer)
+root_file_name = str(input("Please enter a file name for the new root file: "))
 
-save_path = prompt("Please enter the absolute path where you would like the root file to be saved (default same as bin file directory): ", completer=completer)
-if(save_path == ''):
+save_name = os.path.join(save_path, root_file_name+".root")
+
+if save_path == "":
     save_path = os.path.dirname(file_path)
-print(f'You selected: {save_path}')
-
-tree_name = str(input("Enter the root file name with absolute path (default from source file): "))
-if(tree_name == ''):
-    file_name = os.path.basename(file_path)
-    print("filename is: ", file_name)
+    file_name = os.path.basename(file_path + "_pedestal")
     save_name = os.path.join(save_path, os.path.splitext(file_name)[0]+".root")
-print(save_name)
 
 with open(file_path, "rb") as file:
 

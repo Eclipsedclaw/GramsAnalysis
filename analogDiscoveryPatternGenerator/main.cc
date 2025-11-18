@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <unistd.h> // for sleep function
 
 using namespace wf;
 Device::Data *device_data;
@@ -17,6 +18,13 @@ int main(void)
 {
 
   device_data = device.open();
+
+  // Set up power supply
+  FDwfAnalogIOReset(device_data->handle);
+  FDwfAnalogIOChannelNodeSet(device_data->handle, 0, 0, 1); // turn on ps
+  FDwfAnalogIOChannelNodeSet(device_data->handle, 0, 1, 3.3); // set ps voltage to 5 volts
+  FDwfAnalogIOEnableSet(device_data->handle, true); // master enable
+  sleep(1); // wait a second for the power supply voltage to come up (possibly unnecessary)
 
   FDwfAnalogOutReset(device_data->handle, 1);
 

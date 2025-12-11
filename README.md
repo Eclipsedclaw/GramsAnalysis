@@ -1,8 +1,8 @@
-## active used script
-# If you are using data taking from Wavedump2 file per board, please follow the steps as follow
+# active used script
+## If you are using data taking from Wavedump2 file per board, please follow the steps as follow
 TODO: Robin will update this part
 
-# If you are using data taking from Wavedump2 file per channel, please follow the steps as follow
+## If you are using data taking from Wavedump2 file per channel, please follow the steps as follow
 Convert bin to root file script in [file_convert](./file_convert). First run root script in terminal
 ```bash
 root -l file_convert/WD2_fileperchannel_bin_2_root.C
@@ -41,8 +41,3 @@ The rest of the steps stay the same as fileperchannel_bin_plot_raw.py.
 analysis pacakge for GRAMS experiment data
 
 So far it is not uploaded yet. To use it, clone this repo and copy ~/GRAMSlib to your script directory.
-
-## active used script
-Convert bin to root file stays under folder [file_convert](./file_convert)
-
-All plot and analysis scripts for R&D in lab under folder [other](./other)

@@ -5,7 +5,7 @@ TODO: Robin will update this part
 # If you are using data taking from Wavedump2 file per channel, please follow the steps as follow
 Convert bin to root file script in [file_convert](./file_convert). First run root script in terminal
 ```bash
-root -l other/WD2_fileperchannel_bin_2_root.C
+root -l file_convert/WD2_fileperchannel_bin_2_root.C
 ```
 This will pop up the input section for path of the file per channel home directory (Directory that prior to all the channel folders) show as below
 

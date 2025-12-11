@@ -206,16 +206,14 @@ for n in tqdm(range(repeat)):
         base_label = f"ch{channel}"
         chan_info = channel_mapping.get(base_label, {})
         label = chan_info.get('label', base_label)
-        flag = chan_info.get('flag', '')
+        flag = str(chan_info.get('flag', ''))
 
         # Apply filter to CSP channels
         if flag.startswith("CSP"):
             
-            rms = np.sqrt(np.mean(waveform_samples[:-int(num_points / 3)] ** 2))
+            rms = np.sqrt(np.mean(waveform_samples[:1500] ** 2))
             if np.mean(waveform_samples[2200:][np.argpartition(waveform_samples[2200:], -5000)[-5000:]]) - np.mean(waveform_samples[:1500]) > 4 * rms and rms > 1:
                 interesting_event += 1
-                CSP_stats.at['number of interesting events', base_label] = CSP_stats.at['number of interesting events', base_label] + 1 # stats for CSP channels
-                CSP_stats.at['peak sum', base_label] = CSP_stats.at['peak sum', base_label] + max(waveform_samples)
 
         # Skip NULL labels
         if label == 'NULL':

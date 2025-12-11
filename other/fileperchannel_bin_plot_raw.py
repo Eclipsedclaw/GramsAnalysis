@@ -1,7 +1,7 @@
 """
 Plot all waveform from CAEN generated root file
 author: Jiancheng Zeng
-Date: July 20, 2025
+Date: Feb 3, 2024
 """
 
 import numpy as np
@@ -13,46 +13,8 @@ from prompt_toolkit import prompt
 from prompt_toolkit.completion import PathCompleter
 from tqdm import tqdm
 import time
-from scipy.signal import butter, lfilter
-from scipy.ndimage import gaussian_filter1d
-from scipy.stats import norm
 import pandas as pd
-import csv
 import re
-
-def GRAMS_shaper_trial_1(raw_waveform, filter_order, critical_frequency, gaussian_sigma, gain, shaping_time=5, sampling_rate=125):
-    b, a = butter(filter_order, critical_frequency, 'high')
-    #plt.plot(raw_waveform, alpha = 0.7, label = 'original')
-    high_pass_filtered = lfilter(b, a, raw_waveform)
-    #plt.plot(high_pass_filtered, alpha = 0.6, label = 'high pass filtered')
-    
-    # This is for lifting baseline, not trustworthy now
-    #high_pass_filtered = (high_pass_filtered - np.min(high_pass_filtered)) / (np.max(high_pass_filtered) - np.min(high_pass_filtered)) * np.max(high_pass_filtered)
-
-    # Gaussian filter
-    gaussian_filtered = gaussian_filter1d(high_pass_filtered, sigma=gaussian_sigma)
-    """
-    if(np.max(gaussian_filtered)>3.5):
-        gaussian_filtered = gaussian_filtered/np.max(gaussian_filtered)
-    else:
-        gaussian_filtered = 0.1*gaussian_filtered/np.max(gaussian_filtered)
-    """
-
-    # This is for generate a fake normal distribution, also not trustworthy
-    """
-    x = np.arange(0, len(gaussian_filtered))
-    location = np.array(gaussian_filtered).argmax()  # Mean (μ)
-    scale = shaping_time * sampling_rate
-    # Calculate the PDF of the normal distribution
-    pdf = gain * np.max(gaussian_filtered) * norm.pdf(x, loc=location, scale=scale)
-    """
-    return gaussian_filtered * gain
-
-def GRAMS_high_pass(raw_waveform, filter_order, critical_frequency):
-    b, a = butter(filter_order, critical_frequency, 'high')
-    high_pass_filtered = lfilter(b, a, raw_waveform)
-    return high_pass_filtered
-
 
 
 # Create a PathCompleter for file path tab-completion
@@ -67,7 +29,7 @@ file_path = os.path.abspath(file_path)
 
 # Extract just the file name from the file path
 file_name = os.path.basename(file_path)
-
+pedestal_name = "pedestal_"+os.path.splitext(file_name)[0]+".png"
 # Ask the user to input the save path for the plot
 save_path = prompt('Please enter the path where you want to save the plot(default same as root file directory): ', completer=completer)
 if(save_path == ''):
@@ -75,7 +37,7 @@ if(save_path == ''):
 print(f'You selected: {save_path}')
 
 # Define the new folder name
-new_folder = 'filtered_waveform'
+new_folder = 'raw_waveform'
 
 # Create the full path including the new folder
 full_save_path = os.path.join(save_path, new_folder)
@@ -244,25 +206,14 @@ for n in tqdm(range(repeat)):
         base_label = f"ch{channel}"
         chan_info = channel_mapping.get(base_label, {})
         label = chan_info.get('label', base_label)
-        flag = chan_info.get('flag', '')
+        flag = str(chan_info.get('flag', ''))
 
         # Apply filter to CSP channels
         if flag.startswith("CSP"):
-            waveform_samples = GRAMS_shaper_trial_1(
-                waveform_samples,
-                filter_order=1,
-                critical_frequency=0.001,
-                gaussian_sigma=250,
-                shaping_time=5,
-                gain=4,
-                sampling_rate=125
-            )
             
-            rms = np.sqrt(np.mean(waveform_samples[:-int(num_points / 3)] ** 2))
-            if np.max(waveform_samples) > 5 * rms:
+            rms = np.sqrt(np.mean(waveform_samples[:1500] ** 2))
+            if np.mean(waveform_samples[2200:][np.argpartition(waveform_samples[2200:], -5000)[-5000:]]) - np.mean(waveform_samples[:1500]) > 4 * rms and rms > 1:
                 interesting_event += 1
-                CSP_stats.at['number of interesting events', base_label] = CSP_stats.at['number of interesting events', base_label] + 1 # stats for CSP channels
-                CSP_stats.at['peak sum', base_label] = CSP_stats.at['peak sum', base_label] + max(waveform_samples)
 
         # Skip NULL labels
         if label == 'NULL':
@@ -280,7 +231,7 @@ for n in tqdm(range(repeat)):
             line, = ax_csp_x.plot(time, waveform_samples)
             
             # Set text color to match line color
-            ax_csp_x.text(time[0] + 120, offset_value_x + 5, label,
+            ax_csp_x.text(time[-50], offset_value_x + 5, label,
                         va='center', ha='left', fontsize=8,
                         color=line.get_color())  # <-- This gets the line's auto color
             
@@ -290,7 +241,7 @@ for n in tqdm(range(repeat)):
             waveform_samples = [x + offset_value_y for x in waveform_samples]
             line, = ax_csp_y.plot(time, waveform_samples)
             
-            ax_csp_y.text(time[0] + 120, offset_value_y + 5, label,
+            ax_csp_y.text(time[-50], offset_value_y + 5, label,
                         va='center', ha='left', fontsize=8,
                         color=line.get_color())  # <-- Same here
             
@@ -303,7 +254,7 @@ for n in tqdm(range(repeat)):
     # Configure SiPM plots (top row)
     for ax_sipm in [ax_sipm_vis, ax_sipm_vuv]:
         ax_sipm.set_ylabel('Output [mV]')
-        ax_sipm.set_xlim(0, 150)
+        #ax_sipm.set_xlim(0, 150)
         ax_sipm.set_ylim(-50, 10)
         ax_sipm.legend(ncol=1, loc='lower right', fontsize=10)
     
@@ -314,7 +265,7 @@ for n in tqdm(range(repeat)):
     for ax_csp in [ax_csp_x, ax_csp_y]:
         ax_csp.set_xlabel('Time [μs]')
         ax_csp.set_ylabel('Output [mV]')
-        ax_csp.set_xlim(0, 150)
+        #ax_csp.set_xlim(0, 150)
         ax_csp.set_ylim(-50, 550)
         #ax_csp.legend(ncol=1, loc='lower right', fontsize=10)
     
@@ -332,14 +283,6 @@ for n in tqdm(range(repeat)):
         plt.savefig(f"{full_save_path}/{n:04d}_{event_id:04d}.png")
     
     plt.close(fig)
-
-CSP_stats.to_csv(
-    os.path.join(save_path, "CSP_interesting_events_stats.csv"),
-    index=True,          # Keep row labels (recommended for your format)
-    header=True,         # Keep column headers
-    na_rep='NA',         # How to represent missing values
-    float_format='%.2f'  # Format for numbers (2 decimal places)
-)
 
 
 print("Done")

@@ -14,7 +14,7 @@ This will pop up the input section for path of the home directory (Directory tha
 
 <img width="1097" height="461" alt="Screenshot 2025-12-12 at 9 16 28 AM" src="https://github.com/user-attachments/assets/4592a3d8-384c-4722-92c5-e714403fa764" />
 
-After conversion finished, you can use root file for further analysis. To make plot you can run
+After conversion finished, you can use root file for further analysis. To make plot (currently plot mapping fixed) you can run
 
 ```bash
 python3 other/plot_raw_per_board.py

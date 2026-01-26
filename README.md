@@ -37,7 +37,7 @@ Once the processing finished, the root file should be saved also under the same 
 All plot and analysis scripts for R&D in lab under folder [other](./other). 
 To make raw waveform plot, run the script shows below
 ```bash
-python other/fileperchannel_bin_plot_raw.py
+python other/fileperchannel_root_plot_raw.py
 ```
 Input the root file that was generated above. Then enter directly for default output folder that is under the same directory. If you prefer other options, you could also input output directory by yourself
 
@@ -53,9 +53,9 @@ For google sheet, you only need to input column B(label) and C(flag), B(label) w
 
 As for making filtered waveform plot, run the script shows below
 ```bash
-python other/fileperchannel_bin_plot_filtered.py
+python other/fileperchannel_root_plot_filtered.py
 ```
-The rest of the steps stay the same as fileperchannel_bin_plot_raw.py.
+The rest of the steps stay the same as fileperchannel_root_plot_raw.py.
 
 
 # GramsAnalysis

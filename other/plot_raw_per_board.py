@@ -104,7 +104,7 @@ for event_num in tqdm(range(total_events_in_acq)):
         #### checking for interesting events ####
 
         # start with charge channels
-        if chan in charge_cat_x or charge_cat_y:
+        if (chan in charge_cat_x or chan in charge_cat_y):
             # First, check if it's interesting
             # ------ this bit from JC's code ------
             rms = np.sqrt(np.mean(base_corr_waveform[:-int(event_obj.num_samples[0] / 3)] ** 2))

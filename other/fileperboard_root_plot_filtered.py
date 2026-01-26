@@ -118,7 +118,7 @@ for event_num in tqdm(range(total_events_in_acq)):
 
     offset_value_x = 0
     offset_value_y = 0 # this isn't needed right now since we only have one axis
-    offset_bin = 100
+    offset_bin = 10
     # ------ end of JC's code snippet -------
 
     waveform_data = event_obj.waveform_data_2D
@@ -126,10 +126,10 @@ for event_num in tqdm(range(total_events_in_acq)):
 
     # TODO: Maybe update the mapping method
     # catalog for light and charge channels - sourced from xwiki
-    light_vis_cat = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23] # odd suffixes in description,  CAEN CHANNEL NUMBERS
-    light_vuv_cat = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22] # even suffixes in description, CAEN CHANNEL NUMBERS
-    charge_cat_x = [24, 25, 26, 27] # they are all on the same axis, x or y
-    charge_cat_y = [28, 29, 30, 31]
+    light_vis_cat = [32] # odd suffixes in description,  CAEN CHANNEL NUMBERS
+    light_vuv_cat = [] # even suffixes in description, CAEN CHANNEL NUMBERS
+    charge_cat_x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+    charge_cat_y = [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]
 
     event_id = event_obj.event_num[0]
 
@@ -150,7 +150,7 @@ for event_num in tqdm(range(total_events_in_acq)):
                     critical_frequency=0.001,
                     gaussian_sigma=250,
                     shaping_time=5,
-                    gain=100,
+                    gain=4,
                     sampling_rate=125
             )
             # First, check if it's interesting

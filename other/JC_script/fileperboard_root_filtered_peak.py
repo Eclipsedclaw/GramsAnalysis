@@ -14,17 +14,21 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import norm
 
 
-def GRAMS_shaper_trial_1(raw_waveform, b, a, gaussian_sigma, gain):
-    """Apply GRAMS filter with pre-computed coefficients for speed."""
-    high_pass_filtered = lfilter(b, a, raw_waveform)
-    gaussian_filtered = gaussian_filter1d(high_pass_filtered, sigma=gaussian_sigma)
-    return gaussian_filtered * gain
-
-def GRAMS_high_pass(raw_waveform, filter_order, critical_frequency):
+# GRAMS shaper filter
+def GRAMS_shaper_trial_1(raw_waveform, filter_order, critical_frequency, gaussian_sigma, gain):
     b, a = butter(filter_order, critical_frequency, 'high')
     high_pass_filtered = lfilter(b, a, raw_waveform)
-    return high_pass_filtered
-
+    gaussian_filtered = gaussian_filter1d(high_pass_filtered, sigma=gaussian_sigma)
+    gaussian_filtered = gaussian_filtered * gain
+    
+    # Align peaks using smoothed waveform to reduce noise sensitivity
+    smoothed_original = gaussian_filter1d(raw_waveform, sigma=50)
+    original_peak_idx = np.argmax(smoothed_original)
+    filtered_peak_idx = np.argmax(gaussian_filtered)
+    peak_shift = original_peak_idx - filtered_peak_idx
+    gaussian_filtered = np.roll(gaussian_filtered, peak_shift)
+    
+    return gaussian_filtered, high_pass_filtered
 
 # Create a PathCompleter for file path tab-completion
 completer = PathCompleter()
@@ -104,9 +108,10 @@ for event_num in tqdm(range(total_events_in_acq)):
         if chan in charge_cat_x or chan in charge_cat_y:
 
             # apply GRAMS filter with pre-computed coefficients
-            base_corr_waveform = GRAMS_shaper_trial_1(
+            base_corr_waveform, _ = GRAMS_shaper_trial_1(
                     base_corr_waveform,
-                    b, a,
+                    filter_order=1,
+                    critical_frequency=0.001,
                     gaussian_sigma=250,
                     gain=4
             )
@@ -123,9 +128,9 @@ for event_num in tqdm(range(total_events_in_acq)):
                     hit_channels_y += 1
                     if peak_location > maximum_peak_location_y:
                         maximum_peak_location_y = peak_location
-    if maximum_peak_location_x != -1:
+    if maximum_peak_location_x != -1 and hit_channels_x >= 2:
         peak_x.append(maximum_peak_location_x)
-    if maximum_peak_location_y != -1:
+    if maximum_peak_location_y != -1 and hit_channels_y >= 2:
         peak_y.append(maximum_peak_location_y)
 
 # Save arrays to the same directory as input file

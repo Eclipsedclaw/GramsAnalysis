@@ -1,4 +1,10 @@
-#### How to process collected pedestal data
+## How to process collected pedestal data
+
+### For file per board data, follow these steps:
+1. If you have just one .bin data file, run fileperboard_onebinonly.py
+2. If you have multiple .bin data files in the same directory, run fileperboard_manybin.py
+
+### For file per channel data, follow these steps (OLD):
 1. The pedestal data is initially stored in binary format by the CAEN. For our purposes, we will need to convert this into a ROOT file. main.C is the script that will do this for us.
 2. You will have to provide the location of the saved binary file. After running, it will create a .root file in the same location as the initial binary file.
 3. Now, you have to run the python script in the other directory. It is called micro_GRAMS_pedestal.py. You will have to provide the location of the root file as well as the number of channels that data has been collected for. This is usually indicated in the file name.

@@ -22,7 +22,7 @@ peak_combined1 = np.concatenate([peak_x1_us, peak_y1_us])
 peak_combined1 = peak_combined1[(peak_combined1 > -100) & (peak_combined1 < 200)]
 
 # Load the data - File 2
-npz_file2 = '/home/jiancheng/NAS/GAr_TPC_Runs/Run7/GArCombo5cmDrift_Run7_UPS_61ch_TPCHV150_acq3_20251124/acq3_chargetrigonly_peak_locations.npz' 
+npz_file2 = '/home/jiancheng/NAS/GAr_TPC_Runs/Run7/GArCombo5cmDrift_Run7_UPS_61ch_TPCHV150_acq4_20251124/acq4_chargetrigonly_peak_locations.npz' 
 data2 = np.load(npz_file2)
 peak_x2 = data2['peak_x']
 peak_y2 = data2['peak_y']

@@ -88,6 +88,10 @@ for event_num in tqdm(range(total_events_in_acq)):
     waveform_data = event_obj.waveform_data_2D
     time_array = [n*event_obj.resolution[0]*1e-3 for n in range(event_obj.num_samples[0])] # test this
 
+    # adding vertical line
+    ax_csp_x.vlines(16, -50, 550, ls="--", color="black", alpha=0.8)
+    ax_csp_y.vlines(16, -50, 550, ls="--", color="black", alpha=0.8)
+
     # catalog for light and charge channels - sourced from xwiki
     light_vis_cat = [32] # even suffixes in description, CAEN CHANNEL NUMBERS
     light_vuv_cat = [] # odd suffixes in description,  CAEN CHANNEL NUMBERS

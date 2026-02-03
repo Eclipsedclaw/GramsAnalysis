@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import PathCompleter
+from tqdm import tqdm
 
 ## field sizes in bytes - in this order
 L_EVENT = 28 # 4 + 8 + 4 + 8 + 4 bytes
@@ -117,11 +118,13 @@ def bins_to_root(bin_files, root_path, max_basket_size=None):
         for bin in bin_files:
             data = np.fromfile(bin, dtype=dtype)
             print(f"Writing {len(data)} events from {bin.name} to {root_path.name}")
+            t = tqdm(total=len(data))
             split_data = split_array(data, max_basket_size)
             for d in split_data:
                 outfile["test_tree"].extend(transform_array(d))
                 n_evts += len(d)
-                print(n_evts)
+                t.update(len(d))
+            t.close()
     end = time.time()
     print(f"{n_evts} total events written to {root_path} in {end-start:0.2f} seconds")
 
@@ -133,8 +136,8 @@ if __name__ == "__main__":
     bin_dir_path = Path(bin_dir)
     bin_files = sorted(bin_dir_path.glob("*.bin"))
 
-    print("ROOT file will be saved in the same directory as bin files")
-    root_file_name = str(input("Please enter a file name for the new ROOT file: "))
+    root_file_name = str(input("ROOT file will be saved in the same directory. " \
+                               "Please enter a name for the new ROOT file: "))
     if not root_file_name.endswith(".root"):
         root_file_name += ".root"
     root_file_path = bin_dir_path / root_file_name

@@ -128,6 +128,7 @@ def bins_to_root(bin_files, root_path, max_basket_size=None):
     end = time.time()
     print(f"{n_evts} total events written to {root_path} in {end-start:0.2f} seconds")
 
+
 if __name__ == "__main__":
 
     completer = PathCompleter()
@@ -141,5 +142,7 @@ if __name__ == "__main__":
     if not root_file_name.endswith(".root"):
         root_file_name += ".root"
     root_file_path = bin_dir_path / root_file_name
+
+    print(f"{len(bin_files)} bin files found.")
 
     bins_to_root(bin_files, root_file_path)

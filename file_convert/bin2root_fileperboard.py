@@ -134,14 +134,25 @@ if __name__ == "__main__":
     completer = PathCompleter()
     bin_dir = prompt("Please enter the absolute path to the binary file directory: ",
                      completer=completer)
-    bin_dir_path = Path(bin_dir)
-    bin_files = sorted(bin_dir_path.glob("*.bin"))
+    
+    bin_path = Path(bin_dir)
+    bin_files = []
+    if bin_path.is_dir():
+        bin_files = sorted(bin_path.glob("*.bin"))
+    elif bin_path.suffix == ".bin":
+        if bin_path.exists():
+            bin_files = [bin_path]
+            bin_path = bin_files[0].parent
+    if len(bin_files) == 0:
+        raise OSError("No bin files found in directory")
 
     root_file_name = str(input("ROOT file will be saved in the same directory. " \
                                "Please enter a name for the new ROOT file: "))
+    if not root_file_name: # if no input / empty string, use the directory name as the root filename
+        root_file_name = bin_path.stem
     if not root_file_name.endswith(".root"):
         root_file_name += ".root"
-    root_file_path = bin_dir_path / root_file_name
+    root_file_path = bin_path / root_file_name
 
     print(f"{len(bin_files)} bin files found.")
 

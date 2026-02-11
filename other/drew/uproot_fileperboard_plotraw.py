@@ -1,11 +1,14 @@
 import uproot
 import numpy as np
+import matplotlib as mpl
+import matplotlib.style as mplstyle
 import matplotlib.pyplot as plt
+import time
 from tqdm import tqdm
 from pathlib import Path
 
-root_file_path = "/NAS/LAr_TPC_runs/Run64/LArCombo5cmDrift_Run64_UPS_30ch_TPCHV2500_acq1_20260122/" \
-                 "LArCombo5cmDrift_Run64_UPS_30ch_TPCHV2500_acq1_20260122_dig2-usb51054.root"
+root_file_path = "/NAS/GAr_TPC_Runs/Run10/GArCombo5cmDrift_Run10_UPS_33ch_TPCHV500_acq5_20260209/" \
+                 "acq5.root"
 
 channel_mapping = {
     "sipm_vuv" : [32, 33],
@@ -14,20 +17,98 @@ channel_mapping = {
     "csp_y"    : [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]
 }
 
+class WaveformPlotter:
+    def __init__(self, csp_offset=25):
+        self.is_initialized = False
+        self.fig = None
+        self.lines = {}
+        self.axes = {}
+        self.time_vals = None
+        self.csp_offset = csp_offset
+
+    def plot_first_event(self, event, title, filename):
+        if not event.corrected_data:
+            event.baseline_subtract()
+
+        # Create a 2x2 grid
+        self.fig = plt.figure(figsize=(12, 10), layout="constrained")
+        gs = plt.GridSpec(2, 2, height_ratios=[1, 3], width_ratios=[1, 1], figure=self.fig)
+
+        # Define subplots
+        self.axes = {
+            "sipm_vis" : plt.subplot(gs[0, 0]),  # Top-left (SiPM_VIS)
+            "sipm_vuv" : plt.subplot(gs[0, 1]),  # Top-right (SiPM_VUV)
+            "csp_x"    : plt.subplot(gs[1, 0]),  # Bottom-left (CSP_x)
+            "csp_y"    : plt.subplot(gs[1, 1])   # Bottom-right (CSP_y)
+        }
+
+        # Configure SiPM plots
+        for sl in ["sipm_vis", "sipm_vuv"]:
+            self.axes[sl].set_ylabel('Output [mV]')
+            self.axes[sl].set_ylim(-150, 10)
+        self.axes["sipm_vis"].set_title('SiPM (VIS)')
+        self.axes["sipm_vuv"].set_title('SiPM (VUV)')
+        self.axes["sipm_vuv"].yaxis.tick_right()
+        self.axes["sipm_vuv"].yaxis.set_label_position("right")
+        self.axes["sipm_vuv"].sharex(self.axes["sipm_vis"])
+
+        # Configure CSP plot
+        for cl in ["csp_x", "csp_y"]:
+            self.axes[cl].set_xlabel('Time [μs]')
+            self.axes[cl].set_ylabel('Output [mV]')
+            self.axes[cl].set_ylim(-50, 550)
+        self.axes["csp_x"].set_title('CSP (X-axis)')
+        self.axes["csp_y"].set_title('CSP (Y-axis)')
+        self.axes["csp_y"].yaxis.tick_right()
+        self.axes["csp_y"].yaxis.set_label_position("right")
+        self.axes["csp_y"].sharex(self.axes["csp_x"])
+
+        time_vals = event.resolution*np.arange(event.num_samples)
+
+        csp_offset = 25 # vertical offset between each csp channel
+
+        for ch in event.actives:
+            for l, ax in self.axes.items():
+                if ch in event.channel_mapping[l]:
+                    if l in ["csp_x", "csp_y"]:
+                        offset = csp_offset*event.channel_mapping[l].index(ch)
+                    else:
+                        offset = 0
+                    self.lines[ch], = ax.plot(time_vals, event.corrected_data[ch] + offset)
+                    break
+
+        self.fig.suptitle(title)
+        plt.savefig(filename)
+
+        self.is_initialized = True
+
+    def plot_event(self, event, title, filename):
+        for ch in event.actives:
+            for l, ax in self.axes.items():
+                if ch in event.channel_mapping[l]:
+                    if l in ["csp_x", "csp_y"]:
+                        offset = self.csp_offset*event.channel_mapping[l].index(ch)
+                    else:
+                        offset = 0
+                    self.lines[ch].set_ydata(event.corrected_data[ch] + offset)
+                    break
+        self.fig.suptitle(title)
+        plt.savefig(filename)
+
 
 class Event:
     def __init__(self, root_entry, channel_mapping):
-        self.event_num = root_entry["event_num"]
-        self.timestamp = root_entry["timestamp"]
-        self.num_channels = root_entry["num_of_channels"]
-        self.num_samples = root_entry["num_of_samples"]
-        self.resolution = root_entry["resolution"]*1e-3 # convert to us
+        self.event_num = root_entry["event_num"][0]
+        self.timestamp = root_entry["timestamp"][0]
+        self.num_channels = root_entry["num_of_channels"][0]
+        self.num_samples = root_entry["num_of_samples"][0]
+        self.actives = root_entry["active_channels"][0]
+        self.resolution = root_entry["resolution"][0]*1e-3 # convert to us
         self.channel_mapping = channel_mapping
 
         # reshape waveform data into a dict
-        raw_data = root_entry["waveform_data"].reshape(self.num_channels, self.num_samples)
-        self.waveform_data = { ch : raw_data[i,:] for i, ch in
-                               enumerate(root_entry["active_channels"]) }
+        raw_data = root_entry["waveform_data"][0].reshape(self.num_channels, self.num_samples)
+        self.waveform_data = { ch : raw_data[i,:] for i, ch in enumerate(self.actives) }
  
         # placeholder for baseline subtracted waveform data
         self.corrected_data = {}
@@ -38,83 +119,34 @@ class Event:
         self.corrected_data = { ch : raw_data - np.mean(raw_data[:pre_trigger_samples]) 
                                 for ch, raw_data in self.waveform_data.items() }
 
-    def plot_event(self):
-        # Create a 2x2 grid
-        fig = plt.figure(figsize=(12, 10))
-        gs = plt.GridSpec(2, 2, height_ratios=[1, 3], width_ratios=[1, 1])
-        
-        # Define subplots
-        ax_sipm_vis = plt.subplot(gs[0, 0])  # Top-left (SiPM_VIS)
-        ax_sipm_vuv = plt.subplot(gs[0, 1])  # Top-right (SiPM_VUV)
-        ax_csp_x = plt.subplot(gs[1, 0])     # Bottom-left (CSP_x)
-        ax_csp_y = plt.subplot(gs[1, 1])     # Bottom-right (CSP_y)
-        ax_csp_y.sharex(ax_csp_x)
-
-        # Move SIPM_VUV and CSP_y y-axis to the right
-        ax_sipm_vuv.yaxis.tick_right()
-        ax_sipm_vuv.yaxis.set_label_position("right")
-        ax_csp_y.yaxis.tick_right()
-        ax_csp_y.yaxis.set_label_position("right")
-
-        time_vals = self.resolution*np.arange(self.num_samples)
+    def plot_raw_waveforms(self, title, filename, plotter):
+        """Plot unfiltered CSP and SiPM waveforms. Performs baseline subtraction if not done
+        already. Checking for hits not implemented yet"""
 
         # perform baseline subtraction, if not already done
         if not self.corrected_data:
             self.baseline_subtract()
 
-        csp_offset = 25 # vertical offset between each csp channel
+        if not plotter.is_initialized:
+            plotter.plot_first_event(self, title, filename)
+        else:
+            plotter.plot_event(self, title, filename)
 
-        for ch, data in self.corrected_data:
-            if ch in self.channel_mapping["sipm_vuv"]:
-                axis = ax_sipm_vuv
-                offset = 0
-            elif ch in self.channel_mapping["sipm_vis"]:
-                axis = ax_sipm_vis
-                offset = 0
-            elif ch in self.channel_mapping["csp_x"]:
-                axis = ax_csp_x
-                offset = csp_offset*self.channel_mapping["csp_x"].index(ch)
-            elif ch in self.channel_mapping["csp_y"]:
-                axis = ax_csp_y
-                offset = csp_offset*self.channel_mapping["csp_y"].index(ch)
 
-            axis.plot(time_vals, data + offset)
+start = time.time()
 
-        # Configure SiPM plots
-        for ax_sipm in [ax_sipm_vis, ax_sipm_vuv]:
-            ax_sipm.set_ylabel('Output [mV]')
-            ax_sipm.set_ylim(-150, 10)
-        ax_sipm_vis.set_title('SiPM (VIS)')
-        ax_sipm_vuv.set_title('SiPM (VUV)')
-
-        # Configure CSP plot
-        for ax_csp in [ax_csp_x, ax_csp_y]:
-            ax_csp.set_xlabel('Time [μs]')
-            ax_csp.set_ylabel('Output [mV]')
-            ax_csp.set_ylim(-50, 550)
-        ax_csp_x.set_title('CSP (X-axis)')
-        ax_csp_y.set_title('CSP (Y-axis)')
-
-        #fig.suptitle(f"{file_name}\nEvent {self.event_num:04d}")
-        plt.tight_layout()
- 
+mplstyle.use('fast')
 
 with uproot.open(root_file_path) as root_file:
     tree = root_file["test_tree"]
 
-for event in tqdm(uproot.iterate(tree, step_size=1, library="np"), total=tree.num_entries):
-    event_num = event["event_num"][0]
-    n_chans = event["num_of_channels"][0]
-    n_samps = event["num_of_samples"][0]
-    waveforms_flat = event["waveform_data"][0]
-    waveforms = waveforms_flat.reshape(n_chans, n_samps)
-    active_chans = event["active_channels"][0]
-    res = event["resolution"][0]*1e-3 # convert to us
-    t_vals = res*np.arange(n_samps)
+plotter = WaveformPlotter()
+for event_arr in tqdm(uproot.iterate(tree, step_size=1, library="np"), total=tree.num_entries):
+    event = Event(event_arr, channel_mapping)
+    file_name = f"/home/drew/GramsAnalysis/other/drew/plot_test/test_{event.event_num}.png"
+    title = f"test plot\nEvent {event.event_num}"
+    event.plot_raw_waveforms(title, file_name, plotter)
+    #event.plot_waveforms_test(title, file_name)
 
-    plt.figure()
-    for i, ch in enumerate(active_chans):
-        wf = waveforms[i,:]
-        plt.plot(t_vals, wf)
-    plt.savefig(f"/home/drew/GramsAnalysis/other/drew/plot_test/test_{event_num}.png")
-    plt.close()
+end = time.time()
+print(f"total time: {end - start:0.1f} seconds")

@@ -2,17 +2,11 @@
 ## If you are using data taking from Wavedump2 file per board, please follow the steps as follow
 It is recommended to run these scripts using CAEN account so the environment is set correctely. 
 
-To convert Wavedump2 file per board binary file to root, for multiple binary files run
+To convert Wavedump2 file per board binary file to root, run
 ```bash
-python3 file_convert/robin_multibin_tree_write.py 
+python3 file_convert/bin2root_fileperboard.py
 ```
-for single binary file run
-```bash
-python3 file_convert/robin_tree_write.py
-```
-This will pop up the input section for path of the home directory (Directory that prior to all the binary files) show as below. It will also ask you for output path and output name, defualt will be the same input directory. Please input the file name that you want
-
-<img width="1097" height="461" alt="Screenshot 2025-12-12 at 9 16 28 AM" src="https://github.com/user-attachments/assets/4592a3d8-384c-4722-92c5-e714403fa764" />
+This will pop up the input section for path of the directory containing bin files show as below. It will also ask you for name of the new ROOT file, which will be saved in the same directory. Please input the file name that you want.
 
 After conversion finished, you can use root file for further analysis. To make plot (currently plot mapping fixed) you can run
 

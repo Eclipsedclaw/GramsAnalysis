@@ -88,9 +88,13 @@ for event_num in tqdm(range(total_events_in_acq)):
     waveform_data = event_obj.waveform_data_2D
     time_array = [n*event_obj.resolution[0]*1e-3 for n in range(event_obj.num_samples[0])] # test this
 
+    # adding vertical line
+    ax_csp_x.vlines(16, -50, 550, ls="--", color="black", alpha=0.8)
+    ax_csp_y.vlines(16, -50, 550, ls="--", color="black", alpha=0.8)
+
     # catalog for light and charge channels - sourced from xwiki
-    light_vis_cat = [32] # even suffixes in description, CAEN CHANNEL NUMBERS
-    light_vuv_cat = [] # odd suffixes in description,  CAEN CHANNEL NUMBERS
+    light_vis_cat = [32, 33] 
+    light_vuv_cat = [30, 31] 
     charge_cat_x = [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48] # they are all on the same axis, x or y
     charge_cat_y = [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]
 
@@ -104,7 +108,7 @@ for event_num in tqdm(range(total_events_in_acq)):
         #### checking for interesting events ####
 
         # start with charge channels
-        if chan in charge_cat_x or charge_cat_y:
+        if (chan in charge_cat_x or chan in charge_cat_y):
             # First, check if it's interesting
             # ------ this bit from JC's code ------
             rms = np.sqrt(np.mean(base_corr_waveform[:-int(event_obj.num_samples[0] / 3)] ** 2))

@@ -1,152 +1,226 @@
 import uproot
 import numpy as np
-import matplotlib as mpl
-import matplotlib.style as mplstyle
-import matplotlib.pyplot as plt
 import time
+import yaml
+import matplotlib.pyplot as plt
+import matplotlib.style as mplstyle
+from enum import Enum
 from tqdm import tqdm
 from pathlib import Path
 
-root_file_path = "/NAS/GAr_TPC_Runs/Run10/GArCombo5cmDrift_Run10_UPS_33ch_TPCHV500_acq5_20260209/" \
-                 "acq5.root"
 
-channel_mapping = {
-    "sipm_vuv" : [32, 33],
-    "sipm_vis" : [30, 31],
-    "csp_x"    : [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48],
-    "csp_y"    : [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]
-}
+class ChType(Enum):
+    SIPM_VIS = "sipm_vis"
+    SIPM_VUV = "sipm_vuv"
+    CSP_X = "csp_x"
+    CSP_Y = "csp_y"
 
-class WaveformPlotter:
-    def __init__(self, csp_offset=25):
-        self.is_initialized = False
-        self.fig = None
-        self.lines = {}
-        self.axes = {}
-        self.time_vals = None
-        self.csp_offset = csp_offset
+    @classmethod
+    def sipm_channels(cls):
+        return cls.SIPM_VIS, cls.SIPM_VUV
+    
+    @classmethod
+    def csp_channels(cls):
+        return cls.CSP_X, cls.CSP_Y
 
-    def plot_first_event(self, event, title, filename):
-        if not event.corrected_data:
-            event.baseline_subtract()
+
+class Acquisition:
+    def __init__(self, base_dir):
+        self.base_dir = Path(base_dir)
+        if not self.base_dir.exists():
+            raise Exception(f"Data directory {base_dir} not found")
+        self.name = self.base_dir.stem # acquisition name from base directory
+        self.channel_mapping = {}
+        self.root_tree = None
+
+    def load_channel_mapping(self, file_path=""):
+        """Read channel mapping spec from yaml file and create mapping dictionary
+        
+        Mapping dict is rearranged from { ch_type : [list_of_chans] } syntax (as in yaml file) to 
+        { ch_num : ch_type } to improve lookup speed."""
+
+        # check file
+        if file_path:
+            path = Path(file_path)
+            if not path.is_absolute():
+                path = self.base_dir / path
+        else:
+            path = self.base_dir / "channel_mapping.yaml"
+        if not path.exists():
+            raise Exception(f"{path} not found")
+
+        # load yaml config
+        channel_mapping = {}
+        with open(path) as f:
+            yaml_mapping = yaml.safe_load(f)
+        
+        for ch_type_str, val in yaml_mapping.items():
+            # validate channel type
+            try: 
+                ch_type = ChType(ch_type_str)
+            except ValueError as e:
+                msg = f"Channel mapping file {path} contains invalid channel type: {ch_type_str}"
+                raise Exception(msg) from e
+            
+            # parse channel list / range
+            if isinstance(val, list): # list of channels
+                chan_list = val
+            elif isinstance(val, dict): # range of channels
+                try:
+                    chan_list = range(val["range_start"], val["range_end"]+1) # inclusive start and end
+                except KeyError as e:
+                    msg = f"Invalid channel specification for {ch_type_str} in {path}"
+                    raise Exception(msg) from e
+            elif isinstance(val, int):
+                chan_list = [val]
+            else:
+                msg = f"Invalid channel specification for {ch_type_str} in {path}: {val}"
+                raise Exception(msg)
+            
+            # validate channel numbers
+            for ch in chan_list:
+                try:
+                    channel_mapping[int(ch)] = ch_type
+                except TypeError as e:
+                    msg = f"Invalid {ch_type_str} channel in {path}: {ch}"
+                    raise Exception(msg) from e
+    
+        self.channel_mapping = channel_mapping
+
+    def load_root_tree(self, file_path=""):
+        if file_path: # if file path is specified
+            path = Path(file_path)
+            if not path.is_absolute():
+                path = self.base_dir / path
+        else: # if not specified, look for a single root file in base directory
+            root_files = list(self.base_dir.glob("*.root"))
+            if len(root_files) == 0:
+                raise Exception(f"No root files found in {self.base_dir}. Specify filename")
+            if len(root_files) > 1:
+                raise Exception(f"Multiple root files found in {self.base_dir}. Specify filename")
+            path = root_files[0]
+        if not path.exists():
+            raise Exception(f"{path} not found")
+
+        with uproot.open(path) as f:
+            self.root_tree = f["test_tree"]
+
+
+    def plot_all_events(self, plot_dir="", csp_offset=25):
+        if plot_dir: # if file path is specified
+            path = Path(plot_dir)
+            if not path.is_absolute():
+                path = self.base_dir / path
+        else: # otherwise, create a directory for plots
+            path = self.base_dir / "raw_waveforms"
+            path.mkdir(exist_ok=True)
+        
+        if not self.root_tree:
+            raise Exception("Load root file before plotting event waveforms")
+        if not self.channel_mapping:
+            raise Exception("Load channel mapping before plotting event waveforms")
+
+        mplstyle.use('fast')
 
         # Create a 2x2 grid
-        self.fig = plt.figure(figsize=(12, 10), layout="constrained")
-        gs = plt.GridSpec(2, 2, height_ratios=[1, 3], width_ratios=[1, 1], figure=self.fig)
+        fig = plt.figure(figsize=(12, 10), layout="constrained")
+        gs = plt.GridSpec(2, 2, height_ratios=[1, 3], width_ratios=[1, 1], figure=fig)
 
         # Define subplots
-        self.axes = {
-            "sipm_vis" : plt.subplot(gs[0, 0]),  # Top-left (SiPM_VIS)
-            "sipm_vuv" : plt.subplot(gs[0, 1]),  # Top-right (SiPM_VUV)
-            "csp_x"    : plt.subplot(gs[1, 0]),  # Bottom-left (CSP_x)
-            "csp_y"    : plt.subplot(gs[1, 1])   # Bottom-right (CSP_y)
+        axes = {
+            ChType.SIPM_VIS : plt.subplot(gs[0, 0]),  # Top-left (SiPM_VIS)
+            ChType.SIPM_VUV : plt.subplot(gs[0, 1]),  # Top-right (SiPM_VUV)
+            ChType.CSP_X    : plt.subplot(gs[1, 0]),  # Bottom-left (CSP_x)
+            ChType.CSP_Y    : plt.subplot(gs[1, 1])   # Bottom-right (CSP_y)
         }
 
         # Configure SiPM plots
-        for sl in ["sipm_vis", "sipm_vuv"]:
-            self.axes[sl].set_ylabel('Output [mV]')
-            self.axes[sl].set_ylim(-150, 10)
-        self.axes["sipm_vis"].set_title('SiPM (VIS)')
-        self.axes["sipm_vuv"].set_title('SiPM (VUV)')
-        self.axes["sipm_vuv"].yaxis.tick_right()
-        self.axes["sipm_vuv"].yaxis.set_label_position("right")
-        self.axes["sipm_vuv"].sharex(self.axes["sipm_vis"])
+        for sl in ChType.sipm_channels():
+            axes[sl].set_ylabel('Output [mV]')
+            axes[sl].set_ylim(-150, 10)
+        axes[ChType.SIPM_VIS].set_title('SiPM (VIS)')
+        axes[ChType.SIPM_VUV].set_title('SiPM (VUV)')
+        axes[ChType.SIPM_VUV].yaxis.tick_right()
+        axes[ChType.SIPM_VUV].yaxis.set_label_position("right")
+        axes[ChType.SIPM_VUV].sharex(axes[ChType.SIPM_VIS])
 
-        # Configure CSP plot
-        for cl in ["csp_x", "csp_y"]:
-            self.axes[cl].set_xlabel('Time [μs]')
-            self.axes[cl].set_ylabel('Output [mV]')
-            self.axes[cl].set_ylim(-50, 550)
-        self.axes["csp_x"].set_title('CSP (X-axis)')
-        self.axes["csp_y"].set_title('CSP (Y-axis)')
-        self.axes["csp_y"].yaxis.tick_right()
-        self.axes["csp_y"].yaxis.set_label_position("right")
-        self.axes["csp_y"].sharex(self.axes["csp_x"])
+        # Configure CSP plots
+        for cl in ChType.csp_channels():
+            axes[cl].set_xlabel('Time [μs]')
+            axes[cl].set_ylabel('Output [mV]')
+            axes[cl].set_ylim(-50, 550)
+        axes[ChType.CSP_X].set_title('CSP (X-axis)')
+        axes[ChType.CSP_Y].set_title('CSP (Y-axis)')
+        axes[ChType.CSP_Y].yaxis.tick_right()
+        axes[ChType.CSP_Y].yaxis.set_label_position("right")
+        axes[ChType.CSP_Y].sharex(axes[ChType.CSP_X])
 
-        time_vals = event.resolution*np.arange(event.num_samples)
+        # Iterate over events
+        lines = {} # container for plot artists
+        for i, ev_arr in enumerate(tqdm(uproot.iterate(self.root_tree, step_size=1, library="np"), 
+                                      total=self.root_tree.num_entries)):
+            event = Event(ev_arr)
+            data = event.baseline_subtract()
 
-        csp_offset = 25 # vertical offset between each csp channel
+            if i == 0: # first event
+                time_vals = event.resolution*np.arange(event.num_samples)
+            
+            offset_csp_x = 0
+            offset_csp_y = 0
+            for ch in sorted(self.channel_mapping.keys()):
+                if ch not in event.actives:
+                    msg = f"No waveform data for channel {ch} specified in channel mapping"
+                    raise Exception(msg)
+                ch_type = self.channel_mapping[ch]
+                if ch_type == ChType.CSP_X:
+                    offset = offset_csp_x
+                    offset_csp_x += csp_offset
+                elif ch_type == ChType.CSP_Y:
+                    offset = offset_csp_y
+                    offset_csp_y += csp_offset
+                else:
+                    offset = 0
 
-        for ch in event.actives:
-            for l, ax in self.axes.items():
-                if ch in event.channel_mapping[l]:
-                    if l in ["csp_x", "csp_y"]:
-                        offset = csp_offset*event.channel_mapping[l].index(ch)
-                    else:
-                        offset = 0
-                    self.lines[ch], = ax.plot(time_vals, event.corrected_data[ch] + offset)
-                    break
+                if ch in lines: # already plotted this channel before - just replace y data
+                    lines[ch].set_ydata(data[ch] + offset)
+                else: # first event, need to initialize plot artist
+                    lines[ch], = axes[ch_type].plot(time_vals, data[ch] + offset)
 
-        self.fig.suptitle(title)
-        plt.savefig(filename)
-
-        self.is_initialized = True
-
-    def plot_event(self, event, title, filename):
-        for ch in event.actives:
-            for l, ax in self.axes.items():
-                if ch in event.channel_mapping[l]:
-                    if l in ["csp_x", "csp_y"]:
-                        offset = self.csp_offset*event.channel_mapping[l].index(ch)
-                    else:
-                        offset = 0
-                    self.lines[ch].set_ydata(event.corrected_data[ch] + offset)
-                    break
-        self.fig.suptitle(title)
-        plt.savefig(filename)
+            event_id = f"{i:04d}_{event.event_num:04d}"
+            fig.suptitle(f"{self.name}\nEvent {event_id}")
+            plt.savefig(path / f"{event_id}.png")
+        
+        plt.close(fig)
 
 
 class Event:
-    def __init__(self, root_entry, channel_mapping):
+    def __init__(self, root_entry):
         self.event_num = root_entry["event_num"][0]
         self.timestamp = root_entry["timestamp"][0]
         self.num_channels = root_entry["num_of_channels"][0]
         self.num_samples = root_entry["num_of_samples"][0]
         self.actives = root_entry["active_channels"][0]
         self.resolution = root_entry["resolution"][0]*1e-3 # convert to us
-        self.channel_mapping = channel_mapping
 
         # reshape waveform data into a dict
         raw_data = root_entry["waveform_data"][0].reshape(self.num_channels, self.num_samples)
         self.waveform_data = { ch : raw_data[i,:] for i, ch in enumerate(self.actives) }
  
-        # placeholder for baseline subtracted waveform data
-        self.corrected_data = {}
-
     def baseline_subtract(self, pre_trigger_samples=1500):
-        # subtract mean of pre-trigger data from each waveform
-        # default 1500 samples for 8 ns resolution, trigger @ t=16us (2000 samples)
-        self.corrected_data = { ch : raw_data - np.mean(raw_data[:pre_trigger_samples]) 
-                                for ch, raw_data in self.waveform_data.items() }
-
-    def plot_raw_waveforms(self, title, filename, plotter):
-        """Plot unfiltered CSP and SiPM waveforms. Performs baseline subtraction if not done
-        already. Checking for hits not implemented yet"""
-
-        # perform baseline subtraction, if not already done
-        if not self.corrected_data:
-            self.baseline_subtract()
-
-        if not plotter.is_initialized:
-            plotter.plot_first_event(self, title, filename)
-        else:
-            plotter.plot_event(self, title, filename)
+        """Subtract mean of pre-trigger data from each waveform
+        Default to first 1500 samples for 8 ns resolution, trigger @ t=16us (2000 samples)"""
+        return { ch : raw_data - np.mean(raw_data[:pre_trigger_samples]) for ch, raw_data in 
+                 self.waveform_data.items() }
 
 
-start = time.time()
+if __name__ == "__main__":
 
-mplstyle.use('fast')
+    start = time.time()
 
-with uproot.open(root_file_path) as root_file:
-    tree = root_file["test_tree"]
+    data_path = "/NAS/GAr_TPC_Runs/Run10/GArCombo5cmDrift_Run10_UPS_33ch_TPCHV500_acq5_20260209/"
+    channel_mapping_path = "/home/drew/GramsAnalysis/other/drew/channel_mapping.yaml"
 
-plotter = WaveformPlotter()
-for event_arr in tqdm(uproot.iterate(tree, step_size=1, library="np"), total=tree.num_entries):
-    event = Event(event_arr, channel_mapping)
-    file_name = f"/home/drew/GramsAnalysis/other/drew/plot_test/test_{event.event_num}.png"
-    title = f"test plot\nEvent {event.event_num}"
-    event.plot_raw_waveforms(title, file_name, plotter)
-    #event.plot_waveforms_test(title, file_name)
-
-end = time.time()
-print(f"total time: {end - start:0.1f} seconds")
+    acq = Acquisition(data_path)
+    acq.load_channel_mapping(channel_mapping_path)
+    acq.load_root_tree()
+    acq.plot_all_events("/home/drew/GramsAnalysis/other/drew/plot_test")

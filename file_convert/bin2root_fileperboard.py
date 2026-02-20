@@ -49,13 +49,13 @@ def intermediate_dtype(n_chans, n_samps):
 def ttree_branch_types(n_chans, n_samps):
     """Branch names and type definitions for writing to TTree"""
     return {
-        "event_num" :       "i4",
-        "timestamp" :       "u8",
-        "num_of_samples" :  "i4",
-        "resolution" :      "i4",
-        "num_of_channels" : "i4",
-        "active_channels" : ("i4", n_chans),
-        "waveform_data" :   ("f4", n_chans*n_samps)
+        "event_num" :       np.dtype("i4"),
+        "timestamp" :       np.dtype("u8"),
+        "num_of_samples" :  np.dtype("i4"),
+        "resolution" :      np.dtype("i4"),
+        "num_of_channels" : np.dtype("i4"),
+        "active_channels" : np.dtype(("i4", n_chans)),
+        "waveform_data" :   np.dtype(("f4", n_chans*n_samps))
     }
 
 def header_to_dtype(file_path):

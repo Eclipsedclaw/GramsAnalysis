@@ -59,9 +59,9 @@ def GRAMS_Pedestal(file_address):
     # This loads data into the channel_data dictionary
     for acq in tqdm(range(num_events)):
 
-        event_obj.load_basics(acq, file_address, treename)  # Loads basic info like event_num, timestamp etc
-        event_obj.load_actives(acq, file_address, treename) # Loads active channel map
-        event_obj.load_data(acq, file_address, treename)    # Loads waveform data into a dictionary {2:[...], 3:[...], 17:[...], ..., 56:[...]} keys are active channel number
+        event_obj.load_basics(acq, mytree)  # Loads basic info like event_num, timestamp etc
+        event_obj.load_actives(acq, mytree) # Loads active channel map
+        event_obj.load_data(acq, mytree)    # Loads waveform data into a dictionary {2:[...], 3:[...], 17:[...], ..., 56:[...]} keys are active channel number
         #print(f"Working on event {event_obj.event_num[0]}...")
 
         for ch in range(event_obj.num_channels[0]):
@@ -73,6 +73,8 @@ def GRAMS_Pedestal(file_address):
             except KeyError:
                 channel_data[real_ch_number] = event_obj.waveform_data_2D[real_ch_number]
                 channel_means[real_ch_number] = np.average(event_obj.waveform_data_2D[real_ch_number])
+
+    file.Close() # closing TFile
 
     channel_rms = {} # Temporary storage for fluctuation_rms
 

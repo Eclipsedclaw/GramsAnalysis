@@ -19,10 +19,10 @@ class Event:
         self.waveform_data_2D = {} # needs to be initialized
 
 
-    def load_basics(self, event_num, rootfilename, treename="test_tree"):
-        """load_basics(self, event_num, rootfilename, treename)
+    def load_basics(self, event_num, tree):
+        """load_basics(self, event_num, tree)
         
-        Provide the name of the ROOT file and the TTree name and this function will extract all the basic information of the run as below:
+        Provide the ROOT TTree variable and this function will extract all the basic information of the run as below:
         - event number
         - timestamp
         - number of active channels
@@ -31,8 +31,8 @@ class Event:
 
         You can recreate the x-axis in time units with this info.
         """
-        infile = ROOT.TFile(rootfilename)           # Open the ROOT file
-        tree = infile.Get(treename)                 # Get the name of the tree
+        #infile = ROOT.TFile(rootfilename)           # Open the ROOT file
+        #tree = infile.Get(treename)                 # Get the name of the tree
         tree.SetBranchAddress("event_num", self.event_num)
         tree.SetBranchAddress("timestamp", self.timestamp)
         tree.SetBranchAddress("num_of_samples", self.num_samples)
@@ -40,27 +40,27 @@ class Event:
         tree.SetBranchAddress("num_of_channels", self.num_channels)
 
         tree.GetEntry(event_num)                            # Just get the first entry since this info is the same across all events
-        infile.Close()                              # Close the ROOT file!!!
+        #infile.Close()                              # Close the ROOT file!!!
 
 
-    def load_actives(self, event_num, rootfilename, treename="test_tree"):
-        """load_actives(self, event_num, rootfilename, treename)
+    def load_actives(self, event_num, tree):
+        """load_actives(self, event_num, tree)
 
         Run load_basics() first for this function to initialize these values properly.
 
-        Provide the name of the ROOT file and the TTree name to load the active channels and create a dictionary.
+        Provide the name of the ROOT TTree variable to load the active channels and create a dictionary.
 
         The created dictionary has keys from 0 - num_of_channels and values as the physical CAEN channel numbers. 
         """
-        infile = ROOT.TFile(rootfilename)
-        tree = infile.Get(treename)
+        #infile = ROOT.TFile(rootfilename)
+        #tree = infile.Get(treename)
 
         # Initialize the arrays (pseudo-pointers) with the info from load_basics()
         self.actives = array("i", self.num_channels[0]*[0])
         tree.SetBranchAddress("active_channels", self.actives)
 
         tree.GetEntry(event_num)
-        infile.Close()
+        #infile.Close()
 
         # Creating the dictionary
         for ch in range(0, self.num_channels[0]):
@@ -69,8 +69,8 @@ class Event:
         #print(f"Channel dictionary: {self.channel_dict}")
 
 
-    def load_data(self, event_num, rootfilename, treename="test_tree"):
-        """load_data(self, event_num, rootfilename, treename)
+    def load_data(self, event_num, tree):
+        """load_data(self, event_num, tree)
 
         Loads data for a given event_num from the ROOT TTree into a dictionary. Event_num is indexed from 0.
 
@@ -79,14 +79,14 @@ class Event:
         The dictionary key is the CAEN channel number and the value is the waveform as a np.array()
         """
         
-        infile = ROOT.TFile(rootfilename)
-        tree = infile.Get(treename)
+        #infile = ROOT.TFile(rootfilename)
+        #tree = infile.Get(treename)
 
         self.raw_data = array("f", self.num_channels[0]*self.num_samples[0]*[0.0])
         tree.SetBranchAddress("waveform_data", self.raw_data)
 
         tree.GetEntry(event_num)
-        infile.Close()
+        #infile.Close()
 
         for ch in range(0, self.num_channels[0]):
             ch_id = self.channel_dict[ch]   # reading CAEN channel ID from the channel dictionary

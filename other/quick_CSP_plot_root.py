@@ -116,4 +116,4 @@ tfile.Close() # finally close the file
 
 # all things plotted
 fig.savefig(f"{full_save_path}/heatmap.png")
-fig.close() # closing this to prevent memory leaks
+plt.close(fig) # closing this to prevent memory leaks

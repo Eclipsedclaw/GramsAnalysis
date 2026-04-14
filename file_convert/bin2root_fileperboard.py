@@ -24,63 +24,57 @@ def read_header(file_path, header_len=L_EVENT):
 
 def bin_dtype(n_chans, n_samps):
     """dtype for reading bin files"""
+    if n_chans == 1:
+        wf_type = ("waveforms", [("active_channels", "i2"), ("waveform_data", "f4", n_samps)])
+    else:
+        wf_type = ("waveforms", [("active_channels", "i2"), ("waveform_data", "f4", n_samps)],
+                   n_chans)
     return np.dtype([
         ("event_num",       "u4"),
         ("timestamp",       "u8"),
         ("num_of_samples",  "u4"),
         ("resolution",      "u8"),
         ("num_of_channels", "i4"),
-        ("waveforms", [("active_channels", "i2"),
-                       ("waveform_data", "f4", n_samps)], n_chans)
+        wf_type
     ])
 
 def intermediate_dtype(n_chans, n_samps):
     """Intermediate dtype for writing to TTree"""
+    if n_chans == 1:
+        actives_type = ("active_channels", "i2")
+    else:
+        actives_type = ("active_channels", "i2", (n_chans))
     return np.dtype([
         ("event_num",       "u4"),
         ("timestamp",       "u8"),
         ("num_of_samples",  "u4"),
         ("resolution",      "u8"),
         ("num_of_channels", "i4"),
-        ("active_channels", "i2", (n_chans)),
+        actives_type,
         ("waveform_data",   "f4", (n_chans*n_samps))
     ])
 
 def ttree_branch_types(n_chans, n_samps):
     """Branch names and type definitions for writing to TTree"""
+    actives_type = np.dtype(("i4", n_chans)) if n_chans > 1 else np.dtype("i4")
     return {
-        "event_num" :       "i4",
-        "timestamp" :       "u8",
-        "num_of_samples" :  "i4",
-        "resolution" :      "i4",
-        "num_of_channels" : "i4",
-        "active_channels" : ("i4", n_chans),
-        "waveform_data" :   ("f4", n_chans*n_samps)
+        "event_num" :       np.dtype("i4"),
+        "timestamp" :       np.dtype("u8"),
+        "num_of_samples" :  np.dtype("i4"),
+        "resolution" :      np.dtype("i4"),
+        "num_of_channels" : np.dtype("i4"),
+        "active_channels" : actives_type,
+        "waveform_data" :   np.dtype(("f4", n_chans*n_samps))
     }
-
-def header_to_dtype(file_path):
-    """Generate numpy dtype from first event in binary header """
-    path = Path(file_path)
-    with open(path, "rb") as file:
-        header = file.read(L_EVENT)
-    _, _, n_samps, res, n_chans = struct.unpack("<IQIQi", header)
-    print(f"Read event info from first event in {path.name}:")
-    print(f" {n_chans} channels")
-    print(f" {n_samps} samples")
-    print(f" {res} ns resolution")
-    return np.dtype([
-        ("event_num",       "u4"),
-        ("timestamp",       "u8"),
-        ("num_of_samples",  "u4"),
-        ("resolution",      "u8"),
-        ("num_of_channels", "i4"),
-        ("waveforms", [("active_channels", "i2"),
-                       ("waveform_data", "f4", n_samps)], n_chans)
-    ])
 
 def transform_array(data):
     """Convert from binary file dtype to TTree dtype"""
-    n_evts, n_chans, n_samps = data["waveforms"]["waveform_data"].shape
+    old_shape = data["waveforms"]["waveform_data"].shape
+    if len(old_shape) == 3:
+        n_evts, n_chans, n_samps = old_shape
+    else:
+        n_evts, n_samps = old_shape
+        n_chans = 1
     new_dtype = intermediate_dtype(n_chans, n_samps)
     new_data = np.recarray((n_evts,), dtype=new_dtype)
     identical_fields = ["event_num", "timestamp", "num_of_samples", "resolution", "num_of_channels"]

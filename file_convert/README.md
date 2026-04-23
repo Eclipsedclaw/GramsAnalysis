@@ -1,8 +1,7 @@
 ## How to process collected pedestal data
 
-### For file per board data, follow these steps:
-1. If you have just one .bin data file, run fileperboard_onebinonly.py
-2. If you have multiple .bin data files in the same directory, run fileperboard_manybin.py
+### For file per board data:
+Run bin2root_fileperboard.py and input either the directory containing the .bin file(s), or the path to a single .bin file. The new ROOT file will be saved in the same directory.
 
 ### For file per channel data, follow these steps (OLD):
 1. The pedestal data is initially stored in binary format by the CAEN. For our purposes, we will need to convert this into a ROOT file. main.C is the script that will do this for us.

@@ -83,17 +83,18 @@ infile = ROOT.TFile(file_path)  # Open the ROOT file
 tree = infile.Get("test_tree")  # Load tree
 total_events_in_acq = tree.GetEntries()
 print(f"There were {total_events_in_acq} events in this acquisition.")
-infile.Close() # closing file after reading total number of events 
+#infile.Close() # closing file after reading total number of events 
+
+print("Before loading event_obj\n")
+event_obj = Event()    # Loading up the event object. Only needed once!
 
 for event_num in tqdm(range(total_events_in_acq)):
 
     hit_channels = 0 # how many channels saw a real hit in this event?
 
-    # Loading up the event object
-    event_obj = Event()
-    event_obj.load_basics(event_num, file_path)
-    event_obj.load_actives(event_num, file_path)
-    event_obj.load_data(event_num, file_path)
+    event_obj.load_basics(event_num, tree)
+    event_obj.load_actives(event_num, tree)
+    event_obj.load_data(event_num, tree)
 
     # ------ Creating a matplotlib figure - using JC's code here ------
     # Create a 2x2 grid
@@ -214,5 +215,6 @@ for event_num in tqdm(range(total_events_in_acq)):
     
     plt.close(fig)
     # ------ end ------
-         
+
+infile.Close() # closing TFile at the end. Event_class doesn't handle this anymore.         
 print("Done")

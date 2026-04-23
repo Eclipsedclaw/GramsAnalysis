@@ -93,9 +93,9 @@ for event_num in tqdm(range(total_events_in_acq)):
     ax_csp_y.vlines(16, -50, 550, ls="--", color="black", alpha=0.8)
 
     # catalog for light and charge channels - sourced from xwiki
-    light_vis_cat = [32] # even suffixes in description, CAEN CHANNEL NUMBERS
-    light_vuv_cat = [] # odd suffixes in description,  CAEN CHANNEL NUMBERS
-    charge_cat_x = [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48] # they are all on the same axis, x or y
+    light_vis_cat = [32, 33] # odd suffixes in description,  CAEN CHANNEL NUMBERS
+    light_vuv_cat = [30, 31] # even suffixes in description, CAEN CHANNEL NUMBERS
+    charge_cat_x = [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48] # even suffixes in description, CAEN CHANNEL NUMBERS
     charge_cat_y = [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]
 
     event_id = event_obj.event_num[0]

@@ -1,0 +1,17 @@
+# --- Ignore Data Files ---
+*.h5
+*.dat
+*.bin
+*.zip
+*.pdf
+*.png
+
+# --- Ignore System Junk ---
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+
+# --- Ignore Logs ---
+*.log
+sandbox.ipynb

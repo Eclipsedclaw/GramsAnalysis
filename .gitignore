@@ -1,0 +1,10 @@
+# Ignore all __pycache__ folders everywhere in the project
+**/__pycache__/
+
+# Ignore all PNG images
+*.png
+*.jpg
+*.jpeg
+*.dat
+*.h5
+*.root

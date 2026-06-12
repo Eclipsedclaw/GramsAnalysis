@@ -125,53 +125,53 @@ for event_num in tqdm(range(total_events_in_acq)):
     waveform_data = event_obj.waveform_data_2D
     time_array = [n*event_obj.resolution[0]*1e-3 for n in range(event_obj.num_samples[0])] # test this
 
-    # TODO: Maybe update the mapping method
-    # catalog for light and charge channels - sourced from xwiki
-    light_vis_cat = [32, 33] # odd suffixes in description,  CAEN CHANNEL NUMBERS
-    light_vuv_cat = [30, 31] # even suffixes in description, CAEN CHANNEL NUMBERS
-    charge_cat_x = [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48] # even suffixes in description, CAEN CHANNEL NUMBERS
-    charge_cat_y = [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]
+    light_vis_cat = [2]
+    light_vuv_cat=[]
+
+    # using DB50->2xDB37
+    charge_cat_x = [21, 5, 39, 22, 6, 40, 23, 7, 41, 24, 8, 42, 25, 9, 26] # B
+    charge_cat_y = [27, 10, 44, 28, 11, 45, 29, 12, 46, 30, 13, 47, 31, 14, 48] #T
 
     event_id = event_obj.event_num[0]
 
-    for chan in waveform_data: # for key in dict
+    for chan in (charge_cat_x + charge_cat_y):
 
         # all waveforms are baseline corrected
         base_corr_waveform = waveform_data[chan] - np.mean(waveform_data[chan][:1500]) # 1500 because of our pre-trigger time, this is hard-coded and needs to be modified for different pre-trigger times
         
         #### checking for interesting events ####
 
-        # start with charge channels
-        if chan in charge_cat_x or chan in charge_cat_y:
+        # apply GRAMS filter
+        base_corr_waveform = GRAMS_shaper_trial_1(
+                base_corr_waveform,
+                filter_order=1,
+                critical_frequency=0.001,
+                gaussian_sigma=250,
+                shaping_time=5,
+                gain=4,
+                sampling_rate=125
+        )
+        # First, check if it's interesting
+        # ------ this bit from JC's code ------
+        rms = np.sqrt(np.mean(base_corr_waveform[:-int(event_obj.num_samples[0] / 3)] ** 2))
+        if np.max(base_corr_waveform) > 5 * rms:
+            hit_channels += 1
+        # ------ end ------
 
-            # apply GRAMS filter
-            base_corr_waveform = GRAMS_shaper_trial_1(
-                    base_corr_waveform,
-                    filter_order=1,
-                    critical_frequency=0.001,
-                    gaussian_sigma=250,
-                    shaping_time=5,
-                    gain=4,
-                    sampling_rate=125
-            )
-            # First, check if it's interesting
-            # ------ this bit from JC's code ------
-            rms = np.sqrt(np.mean(base_corr_waveform[:-int(event_obj.num_samples[0] / 3)] ** 2))
-            if np.max(base_corr_waveform) > 5 * rms:
-                hit_channels += 1
-            # ------ end ------
+        # then plot on the x or y axes
+        if chan in charge_cat_x:
+            offset_base_corr_waveform = base_corr_waveform + offset_value_x
+            line, = ax_csp_x.plot(time_array, offset_base_corr_waveform, alpha=0.8) # Robin added alpha here to make lines translucent
+            offset_value_x += offset_bin
 
-            # then plot on the x or y axes
-            if chan in charge_cat_x:
-                offset_base_corr_waveform = base_corr_waveform + offset_value_x
-                line, = ax_csp_x.plot(time_array, offset_base_corr_waveform, alpha=0.8) # Robin added alpha here to make lines translucent
-                offset_value_x += offset_bin
+        elif chan in charge_cat_y:
+            offset_base_corr_waveform = base_corr_waveform + offset_value_y
+            line, = ax_csp_y.plot(time_array, offset_base_corr_waveform, alpha=0.8)
+            offset_value_y += offset_bin
 
-            elif chan in charge_cat_y:
-                offset_base_corr_waveform = base_corr_waveform + offset_value_y
-                line, = ax_csp_y.plot(time_array, offset_base_corr_waveform, alpha=0.8)
-                offset_value_y += offset_bin
-        
+    for chan in light_vis_cat + light_vuv_cat:
+        # moving on to light channels
+        base_corr_waveform = waveform_data[chan] - np.mean(waveform_data[chan][:1500]) # 1500 because of our pre-trigger time, this is hard-coded and needs to be modified for different pre-trigger times
         # moving on to light channels
         # ------ code from JC ------
         if chan in light_vis_cat:

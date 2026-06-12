@@ -32,6 +32,7 @@ print(f'You selected: {save_path}')
 
 # Define the new folder name
 new_folder = 'raw_waveform_TEST'
+new_folder = 'raw_waveform_TEST_100'
 
 # Create the full path including the new folder
 full_save_path = os.path.join(save_path, new_folder)
@@ -48,6 +49,11 @@ tree = infile.Get("test_tree")  # Load tree
 total_events_in_acq = tree.GetEntries()
 print(f"There were {total_events_in_acq} events in this acquisition.")
 infile.Close() # closing file after reading total number of events 
+
+total_events_in_acq = 100
+xmin = 10
+xmax = 30
+
 
 for event_num in tqdm(range(total_events_in_acq)):
 
@@ -89,30 +95,14 @@ for event_num in tqdm(range(total_events_in_acq)):
     time_array = [n*event_obj.resolution[0]*1e-3 for n in range(event_obj.num_samples[0])] # test this
 
     # adding vertical line
-    ax_csp_x.vlines(16, -100, 800, ls="--", color="black", alpha=0.8)
-    ax_csp_y.vlines(16, -100, 800, ls="--", color="black", alpha=0.8)
+    ax_csp_x.vlines(16, -50, 550, ls="--", color="black", alpha=0.8)
+    ax_csp_y.vlines(16, -50, 550, ls="--", color="black", alpha=0.8)
 
     # catalog for light and charge channels - sourced from xwiki
-#    light_vis_cat = [30,31] 
-#    light_vuv_cat = [32,33] 
-#    charge_cat_x = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29]
-#    charge_cat_y = [34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62]
-
-#    light_vis_cat = [2, 4]
-#    light_vuv_cat = [19, 35]
-#    charge_cat_x = [21, 5, 39, 22, 6, 23, 7, 41, 24, 8, 42, 25, 9, 26] # they are all on the same axis, x or y
-#    charge_cat_y = [27, 10, 44, 28, 11, 45, 29, 12, 46, 30, 25, 47, 31, 14, 48]
-
-    light_vis_cat = []
-    light_vuv_cat = [] 
-    charge_cat_x = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
-    charge_cat_y = [32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63]
-
-
-#    light_vis_cat = [30,31] 
-#    light_vuv_cat = [32,33] 
-#    charge_cat_x = [5,6,7,8,9,21,22,23,24,25,26,39,40,41,42] # they are all on the same axis, x or y
-#    charge_cat_y = [10,11,12,13,14,27,28,29,30,31,43,44,45,46,47,48]
+    light_vis_cat = [32, 33] 
+    light_vuv_cat = [30, 31] 
+    charge_cat_x = [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48] # they are all on the same axis, x or y
+    charge_cat_y = [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]
 
     event_id = event_obj.event_num[0]
 
@@ -156,8 +146,8 @@ for event_num in tqdm(range(total_events_in_acq)):
     # Configure SiPM plots (top row)
     for ax_sipm in [ax_sipm_vis, ax_sipm_vuv]:
         ax_sipm.set_ylabel('Output [mV]')
-        ax_sipm.set_xlim(0, 150)
-        ax_sipm.set_ylim(-150, 100)
+        ax_sipm.set_xlim(xmin, xmax)
+        ax_sipm.set_ylim(-150, 10)
         ax_sipm.legend(ncol=1, loc='lower right', fontsize=10)
     
     ax_sipm_vis.set_title('SiPM (VIS)')
@@ -167,8 +157,8 @@ for event_num in tqdm(range(total_events_in_acq)):
     for ax_csp in [ax_csp_x, ax_csp_y]:
         ax_csp.set_xlabel('Time [μs]')
         ax_csp.set_ylabel('Output [mV]')
-        ax_csp.set_xlim(0, 150)
-        ax_csp.set_ylim(-100, 800)
+        ax_csp.set_xlim(xmin, xmax)
+        ax_csp.set_ylim(-50, 550)
         #ax_csp.legend(ncol=1, loc='lower right', fontsize=10)
     
     ax_csp_x.set_title('CSP (X-axis)')

@@ -126,10 +126,20 @@ for event_num in tqdm(range(total_events_in_acq)):
 
     # TODO: Maybe update the mapping method
     # catalog for light and charge channels - sourced from xwiki
-    light_vis_cat = [32] # odd suffixes in description,  CAEN CHANNEL NUMBERS
-    light_vuv_cat = [] # even suffixes in description, CAEN CHANNEL NUMBERS
-    charge_cat_x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
-    charge_cat_y = [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]
+   # light_vis_cat = [32] # odd suffixes in description,  CAEN CHANNEL NUMBERS
+   # light_vuv_cat = [] # even suffixes in description, CAEN CHANNEL NUMBERS
+   # charge_cat_x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+   # charge_cat_y = [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]
+
+   # light_vis_cat = [2, 4]
+   # light_vuv_cat = [19, 35]
+   # charge_cat_x = [21, 5, 39, 22, 6, 23, 7, 41, 24, 8, 42, 25, 9, 26] # they are all on the same axis, x or y
+   # charge_cat_y = [27, 10, 44, 28, 11, 45, 29, 12, 46, 30, 25, 47, 31, 14, 48]
+
+    light_vis_cat = [2] 
+    light_vuv_cat = [] 
+    charge_cat_x = [5,6,7,8,9,21,22,23,24,25,26,39,40,41,42] # they are all on the same axis, x or y
+    charge_cat_y = [10,11,12,13,14,27,28,29,30,31,43,44,45,46,47,48]
 
     event_id = event_obj.event_num[0]
 
